@@ -116,7 +116,7 @@ const Form = (config) => {
     };
     const getFieldNamesToWatch = (field) => {
         const set = new Set();
-        const extractVar = (val) => {
+        const addVarIfExists = (val) => {
             if (val && typeof val === 'object' && 'var' in val && typeof val.var === 'string') {
                 set.add(val.var);
             }
@@ -124,33 +124,33 @@ const Form = (config) => {
         const walkRule = (rule) => {
             if ('==' in rule) {
                 const [left, right] = rule['=='];
-                extractVar(left);
-                extractVar(right);
+                addVarIfExists(left);
+                addVarIfExists(right);
             }
             else if ('!=' in rule) {
                 const [left, right] = rule['!='];
-                extractVar(left);
-                extractVar(right);
+                addVarIfExists(left);
+                addVarIfExists(right);
             }
             else if ('>' in rule) {
                 const [left, right] = rule['>'];
-                extractVar(left);
-                extractVar(right);
+                addVarIfExists(left);
+                addVarIfExists(right);
             }
             else if ('<' in rule) {
                 const [left, right] = rule['<'];
-                extractVar(left);
-                extractVar(right);
+                addVarIfExists(left);
+                addVarIfExists(right);
             }
             else if ('>=' in rule) {
                 const [left, right] = rule['>='];
-                extractVar(left);
-                extractVar(right);
+                addVarIfExists(left);
+                addVarIfExists(right);
             }
             else if ('<=' in rule) {
                 const [left, right] = rule['<='];
-                extractVar(left);
-                extractVar(right);
+                addVarIfExists(left);
+                addVarIfExists(right);
             }
             else if ('and' in rule) {
                 rule.and.forEach(walkRule);
