@@ -82,12 +82,12 @@ type RadioGroup = FieldBase & {
 
 type ValueType = boolean | string | number; // What we collect from fields. Will need to add array? How to compare arrays?
 type VarRef = { var: string }; // e.g. { "var": "fieldName" }
-type EqualsRule = { '==': [VarRef, ValueType] };
-type NotEqualsRule = { '!=': [VarRef, ValueType] };
-type LessThanRule = { '<': [VarRef, ValueType] };
-type LessThanOrEqualToRule = { '<=': [VarRef, ValueType] };
-type GreaterThanRule = { '>': [VarRef, ValueType] };
-type GreaterThanOrEqualToRule = { '>=': [VarRef, ValueType] };
+type EqualsRule = { '==': [VarRef, ValueType | VarRef] };
+type NotEqualsRule = { '!=': [VarRef, ValueType | VarRef] };
+type LessThanRule = { '<': [VarRef, ValueType | VarRef] };
+type LessThanOrEqualToRule = { '<=': [VarRef, ValueType | VarRef] };
+type GreaterThanRule = { '>': [VarRef, ValueType | VarRef] };
+type GreaterThanOrEqualToRule = { '>=': [VarRef, ValueType | VarRef] };
 
 // metarules
 type AndRule = { and: Rule[] };
@@ -96,12 +96,15 @@ type NotRule = { not: Rule }; // { not: { '==': [{ var: 'fieldName' }, 'fieldVal
 
 type Rule = EqualsRule | NotEqualsRule | LessThanRule | LessThanOrEqualToRule | GreaterThanRule | GreaterThanOrEqualToRule | AndRule | OrRule | NotRule;
 
-type BasicRule = EqualsRule | NotEqualsRule | LessThanRule | LessThanOrEqualToRule | GreaterThanRule | GreaterThanOrEqualToRule;
-
-
 type Config = {
 	title: string;
 	fields: Field[];
+	sections?: Section[];
+}
+
+type Section = Config & {
+	visible?: Rule[] | boolean;
+	// repeatable
 }
 
 const Form = (config: Config) => {
@@ -154,7 +157,10 @@ const Form = (config: Config) => {
 			div.replaceChildren(label, input);
 			getValue = () => (input as HTMLInputElement).value.trim();
 			setValue = (val: string) => (input as HTMLInputElement).value = val?.trim() || '';
-			setRequired = (bool) => (input as HTMLInputElement).required = !!bool;
+			setRequired = (bool) => {
+				(input as HTMLInputElement).required = !!bool;
+				//(input as HTMLInputElement).pattern = !!bool ? `^\s*\S.*$` : '';
+			};
 		}
 		else if (f.type === 'checkbox') {
 			input = document.createElement('input');
@@ -433,26 +439,40 @@ const Form = (config: Config) => {
 	/** 
 		Interprets a side of a rule so we can compare the two sides
 	*/
-	const readRuleSide = (side: any) => {
+	const readRuleSide = (side: VarRef | ValueType): ValueType => {
 		if (isVarRef(side)) {
-			return FIELDS[side.var].value;
+			return FIELDS[side.var].value as ValueType;
 		}
-		// Is already some kind of value so we return that.
+		// Is already some kind of value (ValueType) so we return that.
 		return side;
 	}
 
+	const areArraysEqual = (array1: string[], array2: string[]) => {
+		// Compare string value arrays for checkbox groups, etc. We don't care about order
+		// Remove duplicates with Set since declaring a value twice on a group should still work the same as once.
+		array1 = [...new Set(array1)].toSorted();
+		array2 = [...new Set(array2)].toSorted();
+		return array1.length === array2.length && array1.every((item, i) => item === array2[i]);
+	};
 
 	/** Makes a rule comparison: field value against a set value. 
-	 * A little repetitive, but it's easier to understand doing the operations one by one like this compared to a lookup
-	 * Also needs some type checking, maybe, or else you can do weird things like 'a' < 'aa' etc? */
+ * A little repetitive, but it's easier to understand doing the operations one by one like this compared to a lookup
+ * Also needs some type checking, maybe, or else you can do weird things like 'a' < 'aa' etc? */
+
 	const evaluateRule = (rule: Rule): boolean => {
 		if ('==' in rule) {
 			const [left, right] = rule['=='];
 			// Comparison will not work for arrays
-			return readRuleSide(left) === readRuleSide(right);
+			const side1 = readRuleSide(left);
+			const side2 = readRuleSide(right);
+			if (Array.isArray(side1) && Array.isArray(side2)) return areArraysEqual(side1, side2);
+			return side1 === side2;
 		}
 		if ('!=' in rule) {
 			const [left, right] = rule['!='];
+			const side1 = readRuleSide(left);
+			const side2 = readRuleSide(right);
+			if (Array.isArray(side1) && Array.isArray(side2)) return areArraysEqual(side1, side2) === false;
 			return readRuleSide(left) !== readRuleSide(right);
 		}
 		if ('>' in rule) {

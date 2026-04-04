@@ -37,6 +37,7 @@ const demo = Form({
             required: [
                 { '==': [{ var: 'membershipType' }, 'resident'] },
             ],
+            minLength: 2
         },
         {
             type: 'checkbox',
@@ -51,7 +52,7 @@ const demo = Form({
             type: 'checkbox',
             name: 'residentWantsPrograms',
             label: 'Enroll in community programs',
-            value: false,
+            value: true,
             visible: [
                 {
                     and: [

@@ -35,7 +35,9 @@ const Form = (config) => {
             div.replaceChildren(label, input);
             getValue = () => input.value.trim();
             setValue = (val) => input.value = val?.trim() || '';
-            setRequired = (bool) => input.required = !!bool;
+            setRequired = (bool) => {
+                input.required = !!bool;
+            };
         }
         else if (f.type === 'checkbox') {
             input = document.createElement('input');
@@ -297,13 +299,26 @@ const Form = (config) => {
         }
         return side;
     };
+    const areArraysEqual = (array1, array2) => {
+        array1 = [...new Set(array1)].toSorted();
+        array2 = [...new Set(array2)].toSorted();
+        return array1.length === array2.length && array1.every((item, i) => item === array2[i]);
+    };
     const evaluateRule = (rule) => {
         if ('==' in rule) {
             const [left, right] = rule['=='];
-            return readRuleSide(left) === readRuleSide(right);
+            const side1 = readRuleSide(left);
+            const side2 = readRuleSide(right);
+            if (Array.isArray(side1) && Array.isArray(side2))
+                return areArraysEqual(side1, side2);
+            return side1 === side2;
         }
         if ('!=' in rule) {
             const [left, right] = rule['!='];
+            const side1 = readRuleSide(left);
+            const side2 = readRuleSide(right);
+            if (Array.isArray(side1) && Array.isArray(side2))
+                return areArraysEqual(side1, side2) === false;
             return readRuleSide(left) !== readRuleSide(right);
         }
         if ('>' in rule) {
