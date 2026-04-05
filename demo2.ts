@@ -1,4 +1,4 @@
-const demo = Form({
+const demo2 = Form({
     title: 'Regional Library Consortium Enrollment',
     fields: [
         // --------------------
@@ -154,6 +154,7 @@ const demo = Form({
                 { text: 'Python Suite', value: 'python' },
                 { text: 'CAD Tools', value: 'cad' },
             ],
+            min: 2,
             visible: [
                 { '==': [{ var: 'techNeedsSoftware' }, true] },
             ],

@@ -1,8 +1,8 @@
 
-type Field = Textbox | Checkbox | Select | Integer | Decimal | CheckboxGroup | RadioGroup;
+type Field = Textbox | Textarea | Checkbox | Select | NumericTextbox | Integer | Decimal | CheckboxGroup | RadioGroup;
 
 type FieldBase = {
-	type: 'textbox' | 'checkbox' | 'select' | 'integer' | 'decimal' | 'checkboxgroup' | 'radiogroup';
+	type: 'textbox' | 'textarea' | 'checkbox' | 'select' | 'numerictextbox' | 'integer' | 'decimal' | 'checkboxgroup' | 'radiogroup';
 	name: string; // Object property name
 	label: string;
 	//sortOrder?: number;
@@ -11,7 +11,7 @@ type FieldBase = {
 	required?: Rule[] | boolean;
 	disabled?: Rule[] | boolean;
 	valid?: Rule[];
-};
+}
 
 type Textbox = FieldBase & {
 	type: 'textbox';
@@ -19,11 +19,27 @@ type Textbox = FieldBase & {
 	placeholder?: string;
 	minLength?: number;
 	maxLength?: number;
-};
+}
+
+type Textarea = FieldBase & {
+	type: 'textarea';
+	value?: string;
+	placeholder?: string;
+	minLength?: number;
+	maxLength?: number;
+}
 
 type Checkbox = FieldBase & {
 	type: 'checkbox';
 	value?: boolean;
+}
+
+type NumericTextbox = FieldBase & {
+	type: 'numerictextbox';
+	value?: string;
+	placeholder?: string;
+	minLength?: number;
+	maxLength?: number;
 }
 
 type Integer = FieldBase & {
@@ -32,7 +48,7 @@ type Integer = FieldBase & {
 	placeholder?: string;
 	min?: number;
 	max?: number;
-};
+}
 
 type Decimal = FieldBase & {
 	type: 'decimal';
@@ -40,8 +56,9 @@ type Decimal = FieldBase & {
 	placeholder?: string;
 	min?: number;
 	max?: number;
-};
+}
 
+// Optgroups / Disabled options
 type Select = FieldBase & {
 	type: 'select';
 	options: {
@@ -50,7 +67,7 @@ type Select = FieldBase & {
 	}[];
 	value?: string;
 	placeholder?: string;
-};
+}
 
 type CheckboxGroup = FieldBase & {
 	type: 'checkboxgroup';
@@ -61,7 +78,7 @@ type CheckboxGroup = FieldBase & {
 	min?: number;
 	max?: number
 	value?: string[];
-};
+}
 
 type RadioGroup = FieldBase & {
 	type: 'radiogroup';
@@ -70,7 +87,7 @@ type RadioGroup = FieldBase & {
 		value: string;
 	}[];
 	value?: string;
-};
+}
 
 // Repeatable fields? Or repeatable "types" eg dynamic list textbox
 // Conditional sections
@@ -80,7 +97,7 @@ type RadioGroup = FieldBase & {
 
 // If arrays are allowed as values, how do we compare them?
 
-type ValueType = boolean | string | number; // What we collect from fields. Will need to add array? How to compare arrays?
+type ValueType = boolean | string | number | string[];
 type VarRef = { var: string }; // e.g. { "var": "fieldName" }
 type EqualsRule = { '==': [VarRef, ValueType | VarRef] };
 type NotEqualsRule = { '!=': [VarRef, ValueType | VarRef] };
@@ -109,8 +126,6 @@ type Section = Config & {
 
 const Form = (config: Config) => {
 
-	const keys = ['==', '!=', '<', '<=', '>', '>=', 'and', 'or', 'not'];
-
 	type FieldInternal = {
 		readonly type: FieldBase['type'];
 		readonly el: HTMLDivElement;
@@ -118,7 +133,7 @@ const Form = (config: Config) => {
 		readonly visible: boolean;
 		readonly required: boolean;
 		readonly disabled: boolean;
-		value: unknown;
+		value: ValueType;
 		updateState(): void;
 	};
 
@@ -140,17 +155,35 @@ const Form = (config: Config) => {
 		requiredSpan.style.color = 'red';
 		requiredSpan.ariaHidden = 'true';
 		label.replaceChildren(labelSpan, requiredSpan);
-		let input: HTMLInputElement | HTMLSelectElement | HTMLFieldSetElement;
+		let input: HTMLInputElement | HTMLTextAreaElement |  HTMLSelectElement | HTMLFieldSetElement;
 		let getValue: () => unknown;
 		let setValue: (val: any) => any;
 		let setRequired: (bool: boolean) => void;
 
 		if (f.type === 'textbox') {
-			input = document.createElement('input') as HTMLInputElement;
+			// input = document.createElement('input');
+			// input.id = id;
+			// input.name = f.name;
+
+			// input.defaultValue = f.value ?? '';
+			// input.placeholder = f.placeholder ?? '';
+			// if (typeof f.maxLength === 'number') input.maxLength = f.maxLength;
+			// if (typeof f.minLength === 'number') input.minLength = f.minLength;
+			// div.replaceChildren(label, input);
+			// getValue = () => (input as HTMLInputElement).value.trim();
+			// setValue = (val: string) => (input as HTMLInputElement).value = val?.trim() || '';
+			// setRequired = (bool) => {
+			// 	(input as HTMLInputElement).required = !!bool;
+			// 	// Maybe better to handle this manually than rely on pattern
+			// 	//(input as HTMLInputElement).pattern = !!bool ? `^\s*\S.*$` : '';
+			// };
+		}
+		if (f.type === 'textbox' || f.type === 'textarea') {
+			input = document.createElement(f.type === 'textbox' ? 'input' : 'textarea');
+			if (f.type ==='textbox') (input as HTMLInputElement).type = 'text';
 			input.id = id;
 			input.name = f.name;
-			input.type = 'text';
-			input.value = f.value ?? '';
+			input.defaultValue = f.value ?? '';
 			input.placeholder = f.placeholder ?? '';
 			if (typeof f.maxLength === 'number') input.maxLength = f.maxLength;
 			if (typeof f.minLength === 'number') input.minLength = f.minLength;
@@ -167,7 +200,7 @@ const Form = (config: Config) => {
 			input.id = id;
 			input.name = f.name;
 			input.type = 'checkbox';
-			input.checked = !!f.value;
+			input.defaultChecked = !!f.value;
 			const wrapperSpan = document.createElement('span');
 			wrapperSpan.replaceChildren(labelSpan, requiredSpan);
 			label.replaceChildren(input, wrapperSpan);
@@ -184,6 +217,9 @@ const Form = (config: Config) => {
 			input.name = f.name;
 			input.type = 'number';
 			input.placeholder = f.placeholder ?? '';
+			if (typeof f.max === 'number' && typeof f.min === 'number' && f.min > f.max) {
+				f.max = f.min;
+			}
 			if (typeof f.max === 'number') {
 				input.max = String(Math.floor(f.max));
 				input.maxLength = input.max.length;
@@ -192,8 +228,9 @@ const Form = (config: Config) => {
 				input.min = String(Math.floor(f.min));
 				if (f.min > 0) input.minLength = input.min.length;
 			}
+			// set value somewhere
 			// Keydown and input handlers to fix int and dec
-
+			div.replaceChildren(label, input);
 			setRequired = (bool) => (input as HTMLInputElement).required = !!bool;
 		}
 		else if (f.type === 'select') {
@@ -205,7 +242,6 @@ const Form = (config: Config) => {
 				input.add(new Option(option.text, option.value, option.value === f.value));
 			}
 			div.replaceChildren(label, input);
-
 			const validValues = new Set(f.options.map(o => o.value));
 			getValue = () => validValues.has((input as HTMLSelectElement).value) ? (input as HTMLSelectElement).value : '';
 			setValue = (val: string) => (input as HTMLSelectElement).value = validValues.has(val) ? val : '';
@@ -224,7 +260,10 @@ const Form = (config: Config) => {
 			legend.replaceChildren(f.label.trim(), requiredSpan);
 			input.append(legend);
 			div.replaceChildren(input);
-			// Enforce min/max here?
+
+			if (typeof f.max === 'number' && typeof f.min === 'number' && f.min > f.max) {
+				f.max = f.min;
+			}
 			const checkboxes = f.options.map(o => {
 				const checkbox = document.createElement('input');
 				const label = document.createElement('label');
@@ -232,9 +271,26 @@ const Form = (config: Config) => {
 				checkbox.type = 'checkbox';
 				checkbox.name = f.name;
 				checkbox.value = o.value;
-				checkbox.checked = selectedValues.has(o.value);
+				checkbox.defaultChecked = selectedValues.has(o.value);
 				input.append(label);
 				return checkbox;
+			});
+			if (typeof f.min === 'number' || typeof f.max === 'number') {
+
+			}
+			input.addEventListener('change', () => {
+				if (typeof f.min !== 'number' && typeof f.max !== 'number') return;
+				let minMaxValidity = '';
+				const selectionLength = checkboxes.filter(c => c.checked && validValues.has(c.value)).length;
+				if (typeof f.min === 'number' && selectionLength < Math.floor(f.min)) {
+					minMaxValidity = `Select at least ${f.min} option(s).`;
+				}
+				else if (typeof f.max === 'number' && selectionLength > Math.floor(f.max)) {
+					minMaxValidity = `Select up to ${f.max} options(s).`;
+				}
+				if (checkboxes.length) {
+					checkboxes[0].setCustomValidity(minMaxValidity);
+				}
 			});
 			getValue = () => checkboxes.filter(c => c.checked && validValues.has(c.value)).map(c => c.value);
 			setValue = (val: string[] = []) => {
@@ -268,7 +324,7 @@ const Form = (config: Config) => {
 				radio.type = 'radio';
 				radio.name = f.name;
 				radio.value = o.value;
-				radio.checked = o.value === f.value;
+				radio.defaultChecked = o.value === f.value;
 				input.append(label);
 				return radio;
 			});
@@ -422,7 +478,6 @@ const Form = (config: Config) => {
 		collectAllVarNames(field.visible);
 		collectAllVarNames(field.required);
 		collectAllVarNames(field.disabled);
-
 		return resultSet;
 	};
 
@@ -447,7 +502,7 @@ const Form = (config: Config) => {
 		return side;
 	}
 
-	const areArraysEqual = (array1: string[], array2: string[]) => {
+	const isFlatStringArrayEqual = (array1: string[], array2: string[]) => {
 		// Compare string value arrays for checkbox groups, etc. We don't care about order
 		// Remove duplicates with Set since declaring a value twice on a group should still work the same as once.
 		array1 = [...new Set(array1)].toSorted();
@@ -456,23 +511,25 @@ const Form = (config: Config) => {
 	};
 
 	/** Makes a rule comparison: field value against a set value. 
- * A little repetitive, but it's easier to understand doing the operations one by one like this compared to a lookup
- * Also needs some type checking, maybe, or else you can do weird things like 'a' < 'aa' etc? */
+	 * A little repetitive, but it's easier to understand doing the operations one by one like this compared to a lookup
+	 * Also needs some type checking, maybe, or else you can do weird things like 'a' < 'aa' etc? This is probably ok
+	 *  Does check for arrays*/
 
 	const evaluateRule = (rule: Rule): boolean => {
+
 		if ('==' in rule) {
 			const [left, right] = rule['=='];
 			// Comparison will not work for arrays
 			const side1 = readRuleSide(left);
 			const side2 = readRuleSide(right);
-			if (Array.isArray(side1) && Array.isArray(side2)) return areArraysEqual(side1, side2);
+			if (Array.isArray(side1) && Array.isArray(side2)) return isFlatStringArrayEqual(side1, side2);
 			return side1 === side2;
 		}
 		if ('!=' in rule) {
 			const [left, right] = rule['!='];
 			const side1 = readRuleSide(left);
 			const side2 = readRuleSide(right);
-			if (Array.isArray(side1) && Array.isArray(side2)) return areArraysEqual(side1, side2) === false;
+			if (Array.isArray(side1) && Array.isArray(side2)) return isFlatStringArrayEqual(side1, side2) === false;
 			return readRuleSide(left) !== readRuleSide(right);
 		}
 		if ('>' in rule) {
@@ -511,11 +568,22 @@ const Form = (config: Config) => {
 
 	const getEmptyValue = ({ type }: FieldInternal) => {
 		if (type === 'checkbox') return false;
-		if (type === 'textbox' || type === 'select' || type === 'radiogroup') return '';
 		if (type === 'integer' || type === 'decimal') return 0;
-		if (type === 'checkboxgroup') return [];
+		if (type === 'checkboxgroup') return [] as string[];
+		return '';
 	};
 
+
+	/** Update dependent fields, then update fields that are dependent on those, etc. */
+	const fireRecursiveDependencyUpdate = (fieldName: string) => {
+		if (!(WATCHERS[fieldName] instanceof Set)) return;
+		for (const watcherName of WATCHERS[fieldName]) {
+			FIELDS[watcherName].updateState();
+			if (WATCHERS[watcherName] instanceof Set) {
+				fireRecursiveDependencyUpdate(watcherName);
+			}
+		}
+	};
 
 	const form = document.createElement('form');
 
@@ -533,15 +601,15 @@ const Form = (config: Config) => {
 	buttonRow.replaceChildren(submitButton);
 
 	// use create null so you have no prototype properties in the way.
-	const valueObject = Object.create(null);
+	const valueGetterObject = Object.create(null);
 	for (const f of config.fields) {
 		const fieldInternal = buildField(f);
 		// Several layers of getter/setters here, probably one can be removed
-		Object.defineProperty(valueObject, f.name, {
+		Object.defineProperty(valueGetterObject, f.name, {
 			get() {
 				return fieldInternal.value;
 			},
-			set(value: any) {
+			set(value: ValueType) {
 				fieldInternal.value = value;
 			},
 			enumerable: true,
@@ -551,46 +619,53 @@ const Form = (config: Config) => {
 
 	form.append(buttonRow);
 
-	/** Update dependent fields, then update fields that are dependent on those, etc. */
-	const fireRecursiveDependencyUpdate = (fieldName: string) => {
-		if (!(WATCHERS[fieldName] instanceof Set)) return;
-		for (const watcherName of WATCHERS[fieldName]) {
-			FIELDS[watcherName].updateState();
-			if (WATCHERS[watcherName] instanceof Set) {
-				fireRecursiveDependencyUpdate(watcherName);
-			}
-		}
-	};
 
 	// Update everything once after creating form
 	for (const fieldInternal of Object.values(FIELDS)) {
 		fieldInternal.updateState();
 	}
 
-	const states: Record<string, typeof valueObject> = {};
+	const states: Record<string, typeof valueGetterObject> = {};
 
 	return {
 		el: form,
 		get value() {
-			return valueObject;
+			// Returned directly individual properties can be set
+			return valueGetterObject;
+		},
+		set value(val: Record<string, ValueType>) {
+			for (const key in val) {
+				FIELDS[key].value = val[key];
+			}
+		},
+		clear() {
+			for (const f of Object.values(FIELDS)) {
+				f.value = getEmptyValue(f);
+			}
+			return this.value;
+		},
+		reset() {
+			form.reset();
+			for (const fieldInternal of Object.values(FIELDS)) {
+				fieldInternal.updateState();
+			}
+			return this.value;
 		},
 		get json() {
-			return JSON.stringify(valueObject);
+			return JSON.stringify(valueGetterObject);
 		},
 		get formData() {
 			return new FormData(form);
 		},
 		saveState(name: string) {
-			const clone = structuredClone(valueObject);
+			const clone = structuredClone(valueGetterObject);
 			states[name] = clone;
 			return clone;
 		},
 		loadState(name: string) {
 			const value = states[name];
 			if (!value) return;
-			for (const key in value) {
-				FIELDS[key].value = value[key];
-			}
+			this.value = value;
 			return structuredClone(value);
 		}
 	};

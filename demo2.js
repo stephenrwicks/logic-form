@@ -1,5 +1,5 @@
 "use strict";
-const demo = Form({
+const demo2 = Form({
     title: 'Regional Library Consortium Enrollment',
     fields: [
         {
@@ -37,7 +37,7 @@ const demo = Form({
             required: [
                 { '==': [{ var: 'membershipType' }, 'resident'] },
             ],
-            minLength: 2
+            minLength: 2,
         },
         {
             type: 'checkbox',
@@ -133,6 +133,7 @@ const demo = Form({
                 { text: 'Python Suite', value: 'python' },
                 { text: 'CAD Tools', value: 'cad' },
             ],
+            min: 2,
             visible: [
                 { '==': [{ var: 'techNeedsSoftware' }, true] },
             ],

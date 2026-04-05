@@ -1,6 +1,5 @@
 "use strict";
 const Form = (config) => {
-    const keys = ['==', '!=', '<', '<=', '>', '>=', 'and', 'or', 'not'];
     const FIELDS = {};
     const WATCHERS = {};
     const buildField = (f) => {
@@ -22,11 +21,14 @@ const Form = (config) => {
         let setValue;
         let setRequired;
         if (f.type === 'textbox') {
-            input = document.createElement('input');
+        }
+        if (f.type === 'textbox' || f.type === 'textarea') {
+            input = document.createElement(f.type === 'textbox' ? 'input' : 'textarea');
+            if (f.type === 'textbox')
+                input.type = 'text';
             input.id = id;
             input.name = f.name;
-            input.type = 'text';
-            input.value = f.value ?? '';
+            input.defaultValue = f.value ?? '';
             input.placeholder = f.placeholder ?? '';
             if (typeof f.maxLength === 'number')
                 input.maxLength = f.maxLength;
@@ -44,7 +46,7 @@ const Form = (config) => {
             input.id = id;
             input.name = f.name;
             input.type = 'checkbox';
-            input.checked = !!f.value;
+            input.defaultChecked = !!f.value;
             const wrapperSpan = document.createElement('span');
             wrapperSpan.replaceChildren(labelSpan, requiredSpan);
             label.replaceChildren(input, wrapperSpan);
@@ -61,6 +63,9 @@ const Form = (config) => {
             input.name = f.name;
             input.type = 'number';
             input.placeholder = f.placeholder ?? '';
+            if (typeof f.max === 'number' && typeof f.min === 'number' && f.min > f.max) {
+                f.max = f.min;
+            }
             if (typeof f.max === 'number') {
                 input.max = String(Math.floor(f.max));
                 input.maxLength = input.max.length;
@@ -70,6 +75,7 @@ const Form = (config) => {
                 if (f.min > 0)
                     input.minLength = input.min.length;
             }
+            div.replaceChildren(label, input);
             setRequired = (bool) => input.required = !!bool;
         }
         else if (f.type === 'select') {
@@ -99,6 +105,9 @@ const Form = (config) => {
             legend.replaceChildren(f.label.trim(), requiredSpan);
             input.append(legend);
             div.replaceChildren(input);
+            if (typeof f.max === 'number' && typeof f.min === 'number' && f.min > f.max) {
+                f.max = f.min;
+            }
             const checkboxes = f.options.map(o => {
                 const checkbox = document.createElement('input');
                 const label = document.createElement('label');
@@ -106,9 +115,26 @@ const Form = (config) => {
                 checkbox.type = 'checkbox';
                 checkbox.name = f.name;
                 checkbox.value = o.value;
-                checkbox.checked = selectedValues.has(o.value);
+                checkbox.defaultChecked = selectedValues.has(o.value);
                 input.append(label);
                 return checkbox;
+            });
+            if (typeof f.min === 'number' || typeof f.max === 'number') {
+            }
+            input.addEventListener('change', () => {
+                if (typeof f.min !== 'number' && typeof f.max !== 'number')
+                    return;
+                let minMaxValidity = '';
+                const selectionLength = checkboxes.filter(c => c.checked && validValues.has(c.value)).length;
+                if (typeof f.min === 'number' && selectionLength < Math.floor(f.min)) {
+                    minMaxValidity = `Select at least ${f.min} option(s).`;
+                }
+                else if (typeof f.max === 'number' && selectionLength > Math.floor(f.max)) {
+                    minMaxValidity = `Select up to ${f.max} options(s).`;
+                }
+                if (checkboxes.length) {
+                    checkboxes[0].setCustomValidity(minMaxValidity);
+                }
             });
             getValue = () => checkboxes.filter(c => c.checked && validValues.has(c.value)).map(c => c.value);
             setValue = (val = []) => {
@@ -142,7 +168,7 @@ const Form = (config) => {
                 radio.type = 'radio';
                 radio.name = f.name;
                 radio.value = o.value;
-                radio.checked = o.value === f.value;
+                radio.defaultChecked = o.value === f.value;
                 input.append(label);
                 return radio;
             });
@@ -299,7 +325,7 @@ const Form = (config) => {
         }
         return side;
     };
-    const areArraysEqual = (array1, array2) => {
+    const isFlatStringArrayEqual = (array1, array2) => {
         array1 = [...new Set(array1)].toSorted();
         array2 = [...new Set(array2)].toSorted();
         return array1.length === array2.length && array1.every((item, i) => item === array2[i]);
@@ -310,7 +336,7 @@ const Form = (config) => {
             const side1 = readRuleSide(left);
             const side2 = readRuleSide(right);
             if (Array.isArray(side1) && Array.isArray(side2))
-                return areArraysEqual(side1, side2);
+                return isFlatStringArrayEqual(side1, side2);
             return side1 === side2;
         }
         if ('!=' in rule) {
@@ -318,7 +344,7 @@ const Form = (config) => {
             const side1 = readRuleSide(left);
             const side2 = readRuleSide(right);
             if (Array.isArray(side1) && Array.isArray(side2))
-                return areArraysEqual(side1, side2) === false;
+                return isFlatStringArrayEqual(side1, side2) === false;
             return readRuleSide(left) !== readRuleSide(right);
         }
         if ('>' in rule) {
@@ -351,12 +377,21 @@ const Form = (config) => {
     const getEmptyValue = ({ type }) => {
         if (type === 'checkbox')
             return false;
-        if (type === 'textbox' || type === 'select' || type === 'radiogroup')
-            return '';
         if (type === 'integer' || type === 'decimal')
             return 0;
         if (type === 'checkboxgroup')
             return [];
+        return '';
+    };
+    const fireRecursiveDependencyUpdate = (fieldName) => {
+        if (!(WATCHERS[fieldName] instanceof Set))
+            return;
+        for (const watcherName of WATCHERS[fieldName]) {
+            FIELDS[watcherName].updateState();
+            if (WATCHERS[watcherName] instanceof Set) {
+                fireRecursiveDependencyUpdate(watcherName);
+            }
+        }
     };
     const form = document.createElement('form');
     const titleEl = document.createElement('p');
@@ -368,10 +403,10 @@ const Form = (config) => {
     submitButton.textContent = 'Submit';
     const buttonRow = document.createElement('div');
     buttonRow.replaceChildren(submitButton);
-    const valueObject = Object.create(null);
+    const valueGetterObject = Object.create(null);
     for (const f of config.fields) {
         const fieldInternal = buildField(f);
-        Object.defineProperty(valueObject, f.name, {
+        Object.defineProperty(valueGetterObject, f.name, {
             get() {
                 return fieldInternal.value;
             },
@@ -383,16 +418,6 @@ const Form = (config) => {
         form.append(fieldInternal.el);
     }
     form.append(buttonRow);
-    const fireRecursiveDependencyUpdate = (fieldName) => {
-        if (!(WATCHERS[fieldName] instanceof Set))
-            return;
-        for (const watcherName of WATCHERS[fieldName]) {
-            FIELDS[watcherName].updateState();
-            if (WATCHERS[watcherName] instanceof Set) {
-                fireRecursiveDependencyUpdate(watcherName);
-            }
-        }
-    };
     for (const fieldInternal of Object.values(FIELDS)) {
         fieldInternal.updateState();
     }
@@ -400,16 +425,34 @@ const Form = (config) => {
     return {
         el: form,
         get value() {
-            return valueObject;
+            return valueGetterObject;
+        },
+        set value(val) {
+            for (const key in val) {
+                FIELDS[key].value = val[key];
+            }
+        },
+        clear() {
+            for (const f of Object.values(FIELDS)) {
+                f.value = getEmptyValue(f);
+            }
+            return this.value;
+        },
+        reset() {
+            form.reset();
+            for (const fieldInternal of Object.values(FIELDS)) {
+                fieldInternal.updateState();
+            }
+            return this.value;
         },
         get json() {
-            return JSON.stringify(valueObject);
+            return JSON.stringify(valueGetterObject);
         },
         get formData() {
             return new FormData(form);
         },
         saveState(name) {
-            const clone = structuredClone(valueObject);
+            const clone = structuredClone(valueGetterObject);
             states[name] = clone;
             return clone;
         },
@@ -417,9 +460,7 @@ const Form = (config) => {
             const value = states[name];
             if (!value)
                 return;
-            for (const key in value) {
-                FIELDS[key].value = value[key];
-            }
+            this.value = value;
             return structuredClone(value);
         }
     };
