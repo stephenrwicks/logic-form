@@ -114,12 +114,12 @@ const Form = (config) => {
                         return val;
                     return Math.floor(val);
                 }
-                return 0;
+                return '';
             };
             setRequired = (bool) => input.required = !!bool;
             setValue = (val) => {
                 if (!isNumeric(val)) {
-                    input.valueAsNumber = 0;
+                    input.value = '';
                     return;
                 }
                 input.valueAsNumber = f.type === 'integer' ? Math.floor(val) : val;
@@ -152,7 +152,9 @@ const Form = (config) => {
             legend.replaceChildren(f.label.trim(), requiredSpan);
             input.append(legend);
             div.replaceChildren(input);
-            if (typeof f.max === 'number' && typeof f.min === 'number' && f.min > f.max) {
+            const hasMin = isNumeric(f.min);
+            const hasMax = isNumeric(f.max);
+            if (hasMin && hasMax && f.min > f.max) {
                 f.max = f.min;
             }
             const checkboxes = f.options.map(o => {
@@ -191,9 +193,6 @@ const Form = (config) => {
                 }
             };
             setRequired = (bool) => {
-                for (const checkbox of checkboxes) {
-                    checkbox.required = !!bool;
-                }
                 requiredSpan.style.display = !!bool ? '' : 'none';
             };
         }
@@ -282,6 +281,18 @@ const Form = (config) => {
                 _disabled = evaluateProperty(f.disabled, false);
                 _required = evaluateProperty(f.required, false);
                 _valid = evaluateProperty(f.valid, true);
+                if (_visible) {
+                    div.style.display = '';
+                    input.disabled = false || _disabled;
+                }
+                else {
+                    div.style.display = 'none';
+                }
+                requiredSpan.style.display = _required ? '' : 'none';
+                setRequired(_required);
+                input.disabled = _disabled || !_visible;
+            },
+            updateDom() {
                 if (_visible) {
                     div.style.display = '';
                     input.disabled = false || _disabled;
@@ -431,8 +442,6 @@ const Form = (config) => {
     const getEmptyValue = ({ type }) => {
         if (type === 'checkbox')
             return false;
-        if (type === 'integer' || type === 'decimal')
-            return 0;
         if (type === 'checkboxgroup')
             return [];
         return '';
@@ -506,6 +515,15 @@ const Form = (config) => {
             for (const key in val) {
                 FIELDS[key].value = val[key];
             }
+        },
+        get data() {
+            const result = {};
+            for (const f of Object.values(FIELDS)) {
+                if (f.disabled || !f.visible)
+                    continue;
+                result[f.name] = f.value;
+            }
+            return result;
         },
         clear() {
             return clear();

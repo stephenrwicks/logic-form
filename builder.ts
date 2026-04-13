@@ -1,7 +1,7 @@
 // I am trying to make a form that builds form configurations for new forms using the form configuration that my form generator generates.
 // April 8 2026
 
-const fieldSetup = Form({
+const editFieldForm = Form({
     title: 'Edit Field',
     fields: [
         {
@@ -204,18 +204,16 @@ const fieldSetup = Form({
 
 });
 
-document.body.append(fieldSetup.el);
+document.body.append(editFieldForm.el);
 
-fieldSetup.el.addEventListener('submit', (e: SubmitEvent) => {
+editFieldForm.el.addEventListener('submit', (e) => {
     e.preventDefault();
-    const defaultValue = fieldSetup.value[`default${fieldSetup.value.type}`];
+    const defaultValue = editFieldForm.value[`default${editFieldForm.value.type}`];
+    // Although all the extra keys aren't bad this is not ideal to map in everything
     const result = {
-        ...fieldSetup.value,
+        ...editFieldForm.value,
         value: defaultValue,
     };
     console.log(result);
+    console.log(editFieldForm.formData);
 });
-
-// const submitFieldSetup = (e: Event) => {
-//     e.preventDefault();
-// };

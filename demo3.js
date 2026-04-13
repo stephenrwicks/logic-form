@@ -1,5 +1,5 @@
 "use strict";
-const demo = Form({
+const demo3 = Form({
     title: 'Basic Enrollment Form',
     fields: [
         {
@@ -126,4 +126,4 @@ const demo = Form({
         },
     ],
 });
-document.body.replaceChildren(demo.el);
+document.body.append(demo3.el);

@@ -426,4 +426,4 @@ const demo2 = Form({
     ],
 });
 
-document.body.replaceChildren(demo.el);
+document.body.append(demo2.el);

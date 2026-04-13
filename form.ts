@@ -131,6 +131,7 @@ const Form = (config: Config) => {
 		readonly disabled: boolean;
 		value: Value;
 		updateState(): void;
+		updateDom(): void;
 	};
 
 	// field name => internal object
@@ -259,12 +260,12 @@ const Form = (config: Config) => {
 					if (f.type === 'decimal') return val;
 					return Math.floor(val);
 				}
-				return 0; // Possibly this should actually be null
+				return ''; // FormData does blank string
 			};
 			setRequired = (bool) => (input as HTMLInputElement).required = !!bool;
 			setValue = (val: number) => {
 				if (!isNumeric(val)) {
-					(input as HTMLInputElement).valueAsNumber = 0;
+					(input as HTMLInputElement).value = '';
 					return;
 				}
 				(input as HTMLInputElement).valueAsNumber = f.type === 'integer' ? Math.floor(val) : val;
@@ -298,7 +299,9 @@ const Form = (config: Config) => {
 			input.append(legend);
 			div.replaceChildren(input);
 
-			if (typeof f.max === 'number' && typeof f.min === 'number' && f.min > f.max) {
+			const hasMin = isNumeric(f.min);
+			const hasMax = isNumeric(f.max);
+			if (hasMin && hasMax && f.min! > f.max!) {
 				f.max = f.min;
 			}
 			const checkboxes = f.options.map(o => {
@@ -337,9 +340,12 @@ const Form = (config: Config) => {
 				}
 			};
 			setRequired = (bool) => {
-				for (const checkbox of checkboxes) {
-					checkbox.required = !!bool;
-				}
+				// Only one should be required. Therefore it has to require/unrequire on check? Confusing semantically.
+				// Just use custom validity here to hit min.
+				// Min 1 is not the same as required, since 0 is acceptable when not required and min exists
+				// for (const checkbox of checkboxes) {
+				// 	checkbox.required = !!bool;
+				// }
 				requiredSpan.style.display = !!bool ? '' : 'none';
 			};
 		}
@@ -387,9 +393,9 @@ const Form = (config: Config) => {
 
 		// Stretch across entire grid if it's conditionally displayed. Otherwise, you get fields moving around left/right
 		//if (typeof f.visible === 'boolean' || Array.isArray(f.visible)) {
-			//div.style.gridColumn = '1/-1';
-			// div.style.transition = 'height .1s ease-out';
-			// div.style.overflow = 'hidden';
+		//div.style.gridColumn = '1/-1';
+		// div.style.transition = 'height .1s ease-out';
+		// div.style.overflow = 'hidden';
 		//}
 
 		for (const fieldName of getFieldNamesToWatch(f)) {
@@ -456,6 +462,20 @@ const Form = (config: Config) => {
 				setRequired(_required);
 				input.disabled = _disabled || !_visible;
 				//setValid(_valid);
+			},
+			updateDom() {
+				if (_visible) {
+					div.style.display = '';
+					input.disabled = false || _disabled;
+					//div.style.height = '';
+				}
+				else {
+					div.style.display = 'none';
+					//div.style.height = '0px';
+				}
+				requiredSpan.style.display = _required ? '' : 'none';
+				setRequired(_required);
+				input.disabled = _disabled || !_visible;
 			}
 		}
 
@@ -521,6 +541,9 @@ const Form = (config: Config) => {
 			else if ('or' in rule) {
 				for (const r of rule.or) collectVars(r);
 			}
+
+			// in, !in, etc.
+
 		};
 
 		const collectAllVarNames = (rules: Rule[] | boolean | undefined) => {
@@ -560,7 +583,7 @@ const Form = (config: Config) => {
 	}
 
 	const isFlatStringArrayEqual = (array1: string[], array2: string[]) => {
-		// Compare string value arrays for checkbox groups, etc. We don't care about order
+		// Compare string value arrays for checkbox groups, etc. We don't care about order so we sort it first
 		// Remove duplicates with Set since declaring a value twice on a group should still work the same as once.
 		array1 = [...new Set(array1)].toSorted();
 		array2 = [...new Set(array2)].toSorted();
@@ -576,7 +599,6 @@ const Form = (config: Config) => {
 
 		if ('==' in rule) {
 			const [left, right] = rule['=='];
-			// Comparison will not work for arrays
 			const side1 = readRuleSide(left);
 			const side2 = readRuleSide(right);
 			if (Array.isArray(side1) && Array.isArray(side2)) return isFlatStringArrayEqual(side1, side2);
@@ -625,7 +647,6 @@ const Form = (config: Config) => {
 
 	const getEmptyValue = ({ type }: FieldInternal) => {
 		if (type === 'checkbox') return false;
-		if (type === 'integer' || type === 'decimal') return 0;
 		if (type === 'checkboxgroup') return [] as string[];
 		return '';
 	};
@@ -643,24 +664,21 @@ const Form = (config: Config) => {
 	};
 
 	const form = document.createElement('form');
-
 	const titleEl = document.createElement('p');
 	titleEl.textContent = config.title?.trim() ?? '';
 	titleEl.style.gridColumn = '1/-1';
-
 	form.append(titleEl);
 
 	const submitButton = document.createElement('button');
 	submitButton.type = 'submit';
 	submitButton.textContent = 'Submit';
-
-
 	const clear = () => {
 		for (const f of Object.values(FIELDS)) {
 			f.value = getEmptyValue(f);
 		}
 		return valueGetterObject;
 	};
+
 	const clearButton = document.createElement('button');
 	clearButton.type = 'button';
 	clearButton.textContent = 'Clear';
@@ -685,10 +703,13 @@ const Form = (config: Config) => {
 	buttonRow.replaceChildren(resetButton, clearButton, submitButton);
 
 	// use create null so you have no prototype properties in the way.
+	// Not really important but getters go on the prototype so this makes it easier to look at
 	const valueGetterObject = Object.create(null);
 	for (const f of config.fields) {
 		const fieldInternal = buildField(f);
-		// Several layers of getter/setters here, probably one can be removed
+		// Several layers of getter/setters here
+		// This is sort of a proxy. It's exposed to the consumer as a layer to access the internal value get/set,
+		// but the rest of the internal object is never exposed
 		Object.defineProperty(valueGetterObject, f.name, {
 			get() {
 				return fieldInternal.value;
@@ -709,6 +730,7 @@ const Form = (config: Config) => {
 		fieldInternal.updateState();
 	}
 
+	// hang on to save states by name
 	const states: Record<string, typeof valueGetterObject> = {};
 
 	return {
@@ -721,6 +743,15 @@ const Form = (config: Config) => {
 			for (const key in val) {
 				FIELDS[key].value = val[key];
 			}
+		},
+		// Naming is a little confusing here. Maybe this should be value
+		get data() {
+			const result: Record<string, Value> = {};
+			for (const f of Object.values(FIELDS)) {
+				if (f.disabled || !f.visible) continue;
+				result[f.name] = f.value;
+			}
+			return result;
 		},
 		clear() {
 			return clear();

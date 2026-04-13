@@ -1,5 +1,5 @@
 "use strict";
-const fieldSetup = Form({
+const editFieldForm = Form({
     title: 'Edit Field',
     fields: [
         {
@@ -198,13 +198,14 @@ const fieldSetup = Form({
         },
     ]
 });
-document.body.append(fieldSetup.el);
-fieldSetup.el.addEventListener('submit', (e) => {
+document.body.append(editFieldForm.el);
+editFieldForm.el.addEventListener('submit', (e) => {
     e.preventDefault();
-    const defaultValue = fieldSetup.value[`default${fieldSetup.value.type}`];
+    const defaultValue = editFieldForm.value[`default${editFieldForm.value.type}`];
     const result = {
-        ...fieldSetup.value,
+        ...editFieldForm.value,
         value: defaultValue,
     };
     console.log(result);
+    console.log(editFieldForm.formData);
 });

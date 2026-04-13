@@ -1,4 +1,4 @@
-const form = Form({
+const demo1 = Form({
     title: 'Library form',
     fields: [
         // Step 1: Select audience type
@@ -193,4 +193,4 @@ const form = Form({
         },
     ],
 });
-document.body.replaceChildren(form.el);
+document.body.append(demo1.el);

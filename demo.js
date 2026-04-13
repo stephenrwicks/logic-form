@@ -1,5 +1,5 @@
 "use strict";
-const form = Form({
+const demo1 = Form({
     title: 'Library form',
     fields: [
         {
@@ -180,4 +180,4 @@ const form = Form({
         },
     ],
 });
-document.body.replaceChildren(form.el);
+document.body.append(demo1.el);
