@@ -182,7 +182,9 @@ const Form = (config: Config) => {
 			setRequired = (bool) => {
 				(input as (HTMLInputElement | HTMLTextAreaElement)).required = !!bool;
 				// Pattern doesn't work on textarea
-				(input as HTMLInputElement).pattern = !!bool ? blockWhiteSpace : '';
+				if (!!bool) {
+					(input as HTMLInputElement).pattern = blockWhiteSpace;
+				}
 			};
 			setValid = (bool) => {
 				let validityMessage = '';
@@ -404,8 +406,7 @@ const Form = (config: Config) => {
 		}
 
 		input.addEventListener(eventToListenFor, () => {
-			//DOMUPDATE(f.name);
-			//fireRecursiveDependencyUpdate(f.name);
+			fireRecursiveDependencyUpdate(f.name);
 		});
 
 		let _visible = true;
@@ -460,24 +461,8 @@ const Form = (config: Config) => {
 				requiredSpan.style.display = _required ? '' : 'none';
 				setRequired(_required);
 				input.disabled = _disabled || !_visible;
-				setValid(_valid);
+				//setValid(_valid);
 			},
-			// updateDom() {
-			// 	console.log('updating dom...');
-			// 	// Could introduce diffing too. Just have old/new
-			// 	if (_visible) {
-			// 		div.style.display = '';
-			// 		input.disabled = false || _disabled;
-			// 		//div.style.height = '';
-			// 	}
-			// 	else {
-			// 		div.style.display = 'none';
-			// 		//div.style.height = '0px';
-			// 	}
-			// 	requiredSpan.style.display = _required ? '' : 'none';
-			// 	setRequired(_required);
-			// 	input.disabled = _disabled || !_visible;
-			// }
 		}
 
 		FIELDS[f.name] = internals;
@@ -658,8 +643,6 @@ const Form = (config: Config) => {
 	//const fieldsToUpdateOnDom: string[] = [];
 	const fireRecursiveDependencyUpdate = (fieldName: string) => {
 		if (!(WATCHERS[fieldName] instanceof Set)) return;
-		const watchers = WATCHERS[fieldName];
-		//fieldsToUpdateOnDom.push(...watchers);
 		for (const watcherName of WATCHERS[fieldName]) {
 			FIELDS[watcherName].updateState();
 			if (WATCHERS[watcherName] instanceof Set) {
@@ -667,19 +650,6 @@ const Form = (config: Config) => {
 			}
 		}
 	};
-
-	// // Is this actually better?
-	// const DOMUPDATE = (fieldName: string) => {
-	// 	fireRecursiveDependencyUpdate(fieldName);
-	// 	const set = new Set(fieldsToUpdateOnDom);
-	// 	console.log(set);
-	// 	for (const fieldName of set) {
-	// 		FIELDS[fieldName].updateDom();
-	// 	}
-	// 	fieldsToUpdateOnDom.length = 0;
-	// };
-
-
 
 	const form = document.createElement('form');
 	const titleEl = document.createElement('p');
