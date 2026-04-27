@@ -242,7 +242,7 @@ const Form = (config) => {
             WATCHERS[fieldName].add(f.name);
         }
         input.addEventListener(eventToListenFor, () => {
-            fireRecursiveDependencyUpdate(f.name);
+            DOMUPDATE(f.name);
         });
         let _visible = true;
         let _disabled = false;
@@ -281,18 +281,9 @@ const Form = (config) => {
                 _disabled = evaluateProperty(f.disabled, false);
                 _required = evaluateProperty(f.required, false);
                 _valid = evaluateProperty(f.valid, true);
-                if (_visible) {
-                    div.style.display = '';
-                    input.disabled = false || _disabled;
-                }
-                else {
-                    div.style.display = 'none';
-                }
-                requiredSpan.style.display = _required ? '' : 'none';
-                setRequired(_required);
-                input.disabled = _disabled || !_visible;
             },
             updateDom() {
+                console.log('updating dom...');
                 if (_visible) {
                     div.style.display = '';
                     input.disabled = false || _disabled;
@@ -446,15 +437,27 @@ const Form = (config) => {
             return [];
         return '';
     };
+    const fieldsToUpdateOnDom = [];
     const fireRecursiveDependencyUpdate = (fieldName) => {
         if (!(WATCHERS[fieldName] instanceof Set))
             return;
+        const watchers = WATCHERS[fieldName];
+        fieldsToUpdateOnDom.push(...watchers);
         for (const watcherName of WATCHERS[fieldName]) {
             FIELDS[watcherName].updateState();
             if (WATCHERS[watcherName] instanceof Set) {
                 fireRecursiveDependencyUpdate(watcherName);
             }
         }
+    };
+    const DOMUPDATE = (fieldName) => {
+        fireRecursiveDependencyUpdate(fieldName);
+        const set = new Set(fieldsToUpdateOnDom);
+        console.log(set);
+        for (const fieldName of set) {
+            FIELDS[fieldName].updateDom();
+        }
+        fieldsToUpdateOnDom.length = 0;
     };
     const form = document.createElement('form');
     const titleEl = document.createElement('p');
@@ -503,7 +506,7 @@ const Form = (config) => {
     }
     form.append(buttonRow);
     for (const fieldInternal of Object.values(FIELDS)) {
-        fieldInternal.updateState();
+        DOMUPDATE(fieldInternal.name);
     }
     const states = {};
     return {
