@@ -253,15 +253,18 @@ const Form = (config: Config) => {
 			// });
 			input.addEventListener('input', () => {
 				// Clean on paste, drag, etc
+				// We would have to ensure this fires before the updating input event or that they are the same event
 				(input as HTMLInputElement).value = (input as HTMLInputElement).value.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
 			});
 
+			// Just returning strings always is probably best
 			getValue = () => {
 				const val = (input as HTMLInputElement).valueAsNumber;
 				if (isNumeric(val)) {
 					if (f.type === 'decimal') return val;
 					return Math.floor(val);
 				}
+				///???
 				return ''; // FormData does blank string
 			};
 			setRequired = (bool) => (input as HTMLInputElement).required = !!bool;
