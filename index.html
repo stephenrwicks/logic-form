@@ -7,11 +7,108 @@
 </head>
 
 <body>
-    <script src="form.js"></script>
-    <!-- <script src="demo.js"></script> -->
-   <!--  <script src="demo2.js"></script> -->
-    <script src="demo2.js"></script>
-    <!-- <script src="builder.js"></script> -->
+    <script src="wc.js"></script>
+    <!-- <script src="demo4.js"></script> -->
+
+    <logic-form id="test" action="https://postman-echo.com/post" method="POST" data-config='{
+  "title": "Library Membership",
+  "fields": [
+    {
+      "type": "textbox",
+      "name": "name",
+      "label": "Full Name",
+      "value": "",
+      "required": true
+    },
+    {
+      "type": "select",
+      "name": "membership",
+      "label": "Membership Type",
+      "value": "",
+      "options": [
+        { "text": "Resident", "value": "resident" },
+        { "text": "Non-Resident", "value": "nonresident" },
+        { "text": "Institutional", "value": "institutional" }
+      ],
+      "required": true
+    },
+    {
+      "type": "checkboxgroup",
+      "name": "services",
+      "label": "Services",
+      "value": [],
+      "options": [
+        { "text": "Computer Access", "value": "computers" },
+        { "text": "Printing", "value": "printing" },
+        { "text": "Research Assistance", "value": "research" },
+        { "text": "Meeting Rooms", "value": "rooms" }
+      ],
+      "min": 2,
+      "visible": [
+        { "!=": [{ "var": "membership" }, ""] }
+      ],
+      "required": [
+        { "==": [{ "var": "membership" }, "resident"] }
+      ]
+    },
+    {
+      "type": "integer",
+      "name": "householdSize",
+      "label": "Household Size",
+      "value": 1,
+      "min": 1,
+      "max": 20,
+      "required": [
+        { "==": [{ "var": "membership" }, "resident"] }
+      ],
+      "disabled": [
+        { "==": [{ "var": "membership" }, "institutional"] }
+      ]
+    },
+    {
+      "type": "checkbox",
+      "name": "needsComputer",
+      "label": "Needs computer access",
+      "value": false,
+      "visible": [
+        { "==": [{ "var": "membership" }, "resident"] }
+      ]
+    },
+    {
+      "type": "select",
+      "name": "computerDuration",
+      "label": "Computer Session Duration",
+      "value": "",
+      "options": [
+        { "text": "30 minutes", "value": "30" },
+        { "text": "1 hour", "value": "60" },
+        { "text": "2 hours", "value": "120" }
+      ],
+      "visible": [
+        { "==": [{ "var": "needsComputer" }, true] }
+      ],
+      "required": [
+        { "==": [{ "var": "needsComputer" }, true] }
+      ]
+    },
+    {
+      "type": "textarea",
+      "name": "notes",
+      "label": "Additional Notes",
+      "value": "",
+      "visible": [
+        { "==": [{ "var": "membership" }, "institutional"] }
+      ],
+      "required": [
+        { "==": [{ "var": "membership" }, "institutional"] }
+      ]
+    }
+  ]
+}'></logic-form>
+
+
+    <script>const x = document.querySelector('#test');</script>
+
 </body>
 
 </html>

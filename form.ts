@@ -1,14 +1,13 @@
 
-type Field = Textbox | Textarea | Checkbox | Select | NumericTextbox | Integer | Decimal | CheckboxGroup | RadioGroup;
+type Field = Textbox | Textarea | Checkbox | Select | NumericTextbox | Integer | Decimal | CheckboxGroup | RadioGroup | List;
 
 type FieldBase = {
-	type: 'textbox' | 'textarea' | 'checkbox' | 'select' | 'numerictextbox' | 'integer' | 'decimal' | 'checkboxgroup' | 'radiogroup';
+	type: 'textbox' | 'textarea' | 'checkbox' | 'select' | 'numerictextbox' | 'integer' | 'decimal' | 'checkboxgroup' | 'radiogroup' | 'list';
 	name: string;
 	label: string;
 	visible?: Rule[] | boolean;
 	required?: Rule[] | boolean;
 	disabled?: Rule[] | boolean;
-	valid?: Rule[]; // not used yet
 }
 
 type Textbox = FieldBase & {
@@ -56,12 +55,12 @@ type Decimal = FieldBase & {
 	max?: number;
 }
 
-// Optgroups / Disabled options
 type Select = FieldBase & {
 	type: 'select';
 	options: {
 		text: string;
 		value: string;
+		//disabled?: Rule[] | boolean;
 	}[];
 	value?: string;
 	placeholder?: string;
@@ -72,6 +71,7 @@ type CheckboxGroup = FieldBase & {
 	options: {
 		text: string;
 		value: string;
+		//disabled?: Rule[] | boolean;
 	}[];
 	min?: number;
 	max?: number
@@ -83,15 +83,39 @@ type RadioGroup = FieldBase & {
 	options: {
 		text: string;
 		value: string;
+		//disabled?: Rule[] | boolean;
 	}[];
 	value?: string;
 }
 
-// Repeatable fields? Or repeatable "types" eg dynamic list textbox
+type List = FieldBase & {
+	type: 'list';
+	value?: string[];
+	min?: number;
+	max?: number;
+}
+
+// Stuff to work on:
+// List input
+// Date input
+// Fix int, decimal, numeric inputs
+// Hidden input
+// Readonly state
+// Convert entire function to Web Component
+// JSON schema from attribute
+// Custom event bubbling
+// Live form builder
+// Disabled options
+// Rule-able min and max
+// Batch evaluation and DOM updates
+// Radio clear button styling
+// in and !in rules
+// Select optgroups
+// Custom errors
+// Combobox input - Can reuse most of my custom one.
+// Sections
 // Conditional sections
 // Repeatable sections
-
-// Possibly add error strings for each
 
 type Value = boolean | string | number | string[];
 type VarRef = { var: string }; // e.g. { "var": "fieldName" }
@@ -120,35 +144,35 @@ type Section = Config & {
 	// repeatable
 }
 
-const Form = (config: Config) => {
+type FieldInternal = {
+	readonly type: FieldBase['type'];
+	readonly el: HTMLDivElement;
+	readonly name: string;
+	readonly visible: boolean;
+	readonly required: boolean;
+	readonly disabled: boolean;
+	value: Value;
+	updateState(): void;
+};
 
-	type FieldInternal = {
-		readonly type: FieldBase['type'];
-		readonly el: HTMLDivElement;
-		readonly name: string;
-		readonly visible: boolean;
-		readonly required: boolean;
-		readonly disabled: boolean;
-		value: Value;
-		updateState(): void;
-		//updateDom(): void;
-	};
+
+const Form = (config: Config) => {
 
 	// field name => internal object
 	const FIELDS: Record<string, FieldInternal> = {};
 	// field name => subscriber names
 	const WATCHERS: Record<string, Set<string>> = {};
 
-	const blockWhiteSpace = ".*\\S.*";
 	const metaKeys = new Set(['a', 'c', 'v', 'x']);
 	const integerAllowedKeys = new Set([
 		'Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Tab', 'Home', 'End',
 		'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'
 	]);
+	const integers = new Set(['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']);
 
 	const buildField = (f: Field) => {
 		if (f.name in FIELDS) throw new Error(`"${f.name}" exists in the config twice. Can't have two fields named the same.`)
-		const id = `_${crypto.randomUUID()}`;
+		const id = `_${f.type}_${crypto.randomUUID()}`;
 		const div = document.createElement('div');
 		const label = document.createElement('label');
 		const labelSpan = document.createElement('span');
@@ -163,12 +187,11 @@ const Form = (config: Config) => {
 		let getValue: () => Value;
 		let setValue: (val: any) => any;
 		let setRequired: (bool: boolean) => void;
-		let setValid: (bool: boolean) => void;
 		let eventToListenFor: 'change' | 'input' = 'change';
 
-		if (f.type === 'textbox' || f.type === 'textarea') {
+		if (f.type === 'textbox' || f.type === 'textarea' || f.type === 'numerictextbox') {
 			eventToListenFor = 'input'
-			input = document.createElement(f.type === 'textbox' ? 'input' : 'textarea');
+			input = document.createElement(f.type === 'textarea' ? 'textarea' : 'input');
 			if (f.type === 'textbox') (input as HTMLInputElement).type = 'text';
 			input.id = id;
 			input.name = f.name;
@@ -179,20 +202,21 @@ const Form = (config: Config) => {
 			div.replaceChildren(label, input);
 			getValue = () => (input as (HTMLInputElement | HTMLTextAreaElement)).value.trim();
 			setValue = (val: string) => (input as (HTMLInputElement | HTMLTextAreaElement)).value = typeof val === 'string' ? val.trim() : '';
+			const whiteSpaceBlocker = () => input.setCustomValidity(!!getValue() ? '' : 'This field is required.');
 			setRequired = (bool) => {
 				(input as (HTMLInputElement | HTMLTextAreaElement)).required = !!bool;
-				// Pattern doesn't work on textarea
-				if (!!bool) {
-					(input as HTMLInputElement).pattern = blockWhiteSpace;
-				}
+				// Prevent user from entering a space to bypass required. We could use "pattern" on textboxes but not textareas.
+				// Let's always remove before adding so we don't end up with 50 event listeners.
+				input.removeEventListener('input', whiteSpaceBlocker);
+				if (!!bool) input.addEventListener('input', whiteSpaceBlocker);
 			};
-			setValid = (bool) => {
-				let validityMessage = '';
-				if (!bool) {
-					validityMessage = 'This field is invalid.';
-				}
-				input.setCustomValidity(validityMessage);
-			};
+			// setValid = (bool) => {
+			// 	let validityMessage = '';
+			// 	if (!bool) {
+			// 		validityMessage = 'This field is invalid.';
+			// 	}
+			// 	input.setCustomValidity(validityMessage);
+			// };
 			// handle custom validity on input or set value
 		}
 		else if (f.type === 'checkbox') {
@@ -213,8 +237,7 @@ const Form = (config: Config) => {
 		}
 		else if (f.type === 'integer' || f.type === 'decimal') {
 
-
-			const maxLength = String(f.max).length || 10;
+			const maxLength = isInteger(f.max) ? String(f.max).length : 15;
 			eventToListenFor = 'input'
 			input = document.createElement('input');
 			input.id = id;
@@ -243,10 +266,19 @@ const Form = (config: Config) => {
 
 			// Browsers aren't great at making number inputs actually work so we will add some keydown help
 			input.addEventListener('keydown', (e) => {
-				if (integerAllowedKeys.has(e.key)) return;
-				if ((e.ctrlKey || e.metaKey) && metaKeys.has(e.key.toLowerCase())) return;
+				const isPasteOrSomething = (e.ctrlKey || e.metaKey) && metaKeys.has(e.key.toLowerCase());
+				if (isPasteOrSomething) {
+
+					return;
+				}
+				if ((input as HTMLInputElement).value.length > maxLength && integers.has(e.key)) {
+					e.preventDefault();
+				}
+				if (!integerAllowedKeys.has(e.key)) {
+					e.preventDefault();
+				}
 				// Ordering of this makes no sense
-				e.preventDefault(); // Block
+
 			});
 			// input.addEventListener('keydown', (e) => {
 			// 	if ((input as HTMLInputElement).value.length >= maxLength) e.preventDefault();
@@ -254,7 +286,7 @@ const Form = (config: Config) => {
 			input.addEventListener('input', () => {
 				// Clean on paste, drag, etc
 				// We would have to ensure this fires before the updating input event or that they are the same event
-				(input as HTMLInputElement).value = (input as HTMLInputElement).value.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+				//(input as HTMLInputElement).value = (input as HTMLInputElement).value.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
 			});
 
 			// Just returning strings always is probably best
@@ -281,16 +313,21 @@ const Form = (config: Config) => {
 			input.id = id;
 			input.name = f.name;
 			input.add(new Option(f.placeholder || '-', '', false));
+			const validValues = new Set(f.options.map(o => o.value));
 			for (const option of f.options) {
-				input.add(new Option(option.text, option.value, option.value === f.value));
+				if (!option.value?.trim()) {
+					throw new Error(`select ${f.name} has an option with no value`)
+				}
+				const selected = option.value === f.value && validValues.has(f.value);
+				input.add(new Option(option.text, option.value, selected, selected));
 			}
 			div.replaceChildren(label, input);
-			const validValues = new Set(f.options.map(o => o.value));
 			getValue = () => validValues.has((input as HTMLSelectElement).value) ? (input as HTMLSelectElement).value : '';
 			setValue = (val: string) => (input as HTMLSelectElement).value = validValues.has(val) ? val : '';
 			setRequired = (bool) => (input as HTMLSelectElement).required = !!bool;
 		}
 		else if (f.type === 'checkboxgroup') {
+
 			const validValues = new Set(f.options.map(o => o.value));
 			const defaultSelectedValues = new Set(f.value ?? []);
 			input = document.createElement('fieldset');
@@ -323,20 +360,42 @@ const Form = (config: Config) => {
 			if (typeof f.min === 'number' || typeof f.max === 'number') {
 
 			}
-			input.addEventListener('change', () => {
-				if (typeof f.min !== 'number' && typeof f.max !== 'number') return;
-				let minMaxValidity = '';
+
+			const minMax = () => {
+				let validityMessage = '';
+				const hasMin = isInteger(f.min) || f.required;
+				const hasMax = isInteger(f.max);
+
+				if (hasMin && f.min! > f.options.length) throw new Error(`${f.name} min is greater than total options`)
+				if (hasMin && hasMax && f.min! > f.options.length) f.min = f.options.length;
+				if (hasMin && hasMax && f.max! > f.options.length) f.max = f.options.length;
+				if (hasMin && f.required && (f.min! < 1 || typeof f.min === 'undefined')) f.min = 1;
+				if (hasMin && hasMax && f.min! > f.max!) f.max = f.min;
+
 				const selectionLength = checkboxes.filter(c => c.checked && validValues.has(c.value)).length;
-				if (typeof f.min === 'number' && selectionLength < Math.floor(f.min)) {
-					minMaxValidity = `Select at least ${f.min} option(s).`;
+				const isTooFew = hasMin && selectionLength < Math.floor(f.min!);
+				const isTooMany = hasMax && selectionLength > Math.floor(f.max!);
+
+				if (hasMin && hasMax && (isTooFew || isTooMany) && f.min === f.max) {
+					validityMessage = `Select exactly ${f.min} option(s).`
 				}
-				else if (typeof f.max === 'number' && selectionLength > Math.floor(f.max)) {
-					minMaxValidity = `Select up to ${f.max} options(s).`;
+				else if (hasMin && hasMax && (isTooFew || isTooMany)) {
+					validityMessage = `Select ${f.min}-${f.max} option(s).`
+				}
+				else if (hasMin && (isTooFew || isTooMany)) {
+					validityMessage = `Select at least ${f.min} option(s).`
+				}
+				else if (hasMax && (isTooFew || isTooMany)) {
+					validityMessage = `Select up to ${f.max} option(s).`
 				}
 				if (checkboxes.length) {
-					checkboxes[0].setCustomValidity(minMaxValidity);
+					checkboxes[0].setCustomValidity(validityMessage);
 				}
-			});
+
+				// If it is not required and is empty, it is valid. This isnt working
+				if (!f.required && selectionLength === 0) checkboxes[0].setCustomValidity('');
+			};
+			input.addEventListener('change', minMax);
 			getValue = () => checkboxes.filter(c => c.checked && validValues.has(c.value)).map(c => c.value);
 			setValue = (val: string[] = []) => {
 				const set = new Set(val.filter(v => validValues.has(v)));
@@ -344,20 +403,17 @@ const Form = (config: Config) => {
 					checkbox.checked = set.has(checkbox.value);
 				}
 			};
-			setRequired = (bool) => {
-				// Only one should be required. Therefore it has to require/unrequire on check? Confusing semantically.
-				// Just use custom validity here to hit min.
-				// Min 1 is not the same as required, since 0 is acceptable when not required and min exists
-				// for (const checkbox of checkboxes) {
-				// 	checkbox.required = !!bool;
-				// }
+
+			setRequired = (bool: boolean) => {
+				minMax();
 				requiredSpan.style.display = !!bool ? '' : 'none';
-			};
+			}
 		}
 		else if (f.type === 'radiogroup') {
 			const validValues = new Set(f.options.map(o => o.value));
 			input = document.createElement('fieldset');
 			input.id = id;
+			input.style.position = 'relative';
 			const legend = document.createElement('legend');
 			const requiredSpan = document.createElement('span');
 			requiredSpan.textContent = ' *';
@@ -366,6 +422,18 @@ const Form = (config: Config) => {
 			legend.replaceChildren(f.label.trim(), requiredSpan);
 			input.append(legend);
 			div.replaceChildren(input);
+
+			// Needs styling. Could we use anchor positioning?
+			const clearButton = document.createElement('button');
+			clearButton.type = 'button';
+			clearButton.textContent = 'Clear';
+			clearButton.style.position = 'absolute';
+			clearButton.style.bottom = '0';
+			clearButton.style.right = '0';
+			const updateClearButtonVisibility = () => clearButton.style.display = !!getValue() ? '' : 'none';
+			input.addEventListener('change', () => updateClearButtonVisibility());
+			clearButton.addEventListener('click', () => setValue(''));
+
 			const radios = f.options.map(o => {
 				const radio = document.createElement('input');
 				const label = document.createElement('label');
@@ -377,11 +445,15 @@ const Form = (config: Config) => {
 				input.append(label);
 				return radio;
 			});
+
+			input.append(clearButton);
+
 			getValue = () => radios.find(r => r.checked && validValues.has(r.value))?.value ?? '';
 			setValue = (val: string) => {
 				for (const radio of radios) {
-					radio.checked = val === radio.value;
+					radio.checked = val === radio.value && validValues.has(val);
 				}
+				updateClearButtonVisibility();
 			}
 			setRequired = (bool) => {
 				for (const radio of radios) {
@@ -389,9 +461,97 @@ const Form = (config: Config) => {
 				}
 				requiredSpan.style.display = !!bool ? '' : 'none';
 			};
+			updateClearButtonVisibility();
+		}
+		else if (f.type === 'list') {
+			input = document.createElement('fieldset');
+			input.id = id;
+			const legend = document.createElement('legend');
+			const requiredSpan = document.createElement('span');
+			requiredSpan.textContent = ' *';
+			requiredSpan.style.color = 'red';
+			requiredSpan.ariaHidden = 'true';
+			legend.replaceChildren(f.label.trim(), requiredSpan);
+			input.append(legend);
+			div.replaceChildren(input);
+			const listItems: ReturnType<typeof buildItem>[] = [];
+			const buildItem = (val = '') => {
+				const itemDiv = document.createElement('div');
+				itemDiv.style.display = 'flex';
+				itemDiv.style.marginBottom = '.25rem';
+				const deleteButton = document.createElement('button');
+				deleteButton.type = 'button';
+				deleteButton.title = 'Remove';
+				deleteButton.textContent = 'X';
+				deleteButton.addEventListener('click', () => object.remove());
+				const itemInput = document.createElement('input');
+				itemInput.type = 'text';
+				itemInput.value = val.trim();
+				itemDiv.replaceChildren(itemInput, deleteButton);
+
+				const object = {
+					itemDiv,
+					deleteButton,
+					get value() {
+						return itemInput.value.trim();
+					},
+					remove() {
+						if (isInteger(f.min) && listItems.length <= f.min!) return;
+						listItems.splice(listItems.findIndex(x => x === object), 1);
+						itemDiv.dispatchEvent(new Event('change', { bubbles: true }));
+						itemDiv.remove();
+					}
+				};
+				return object;
+			};
+			const addItemButton = document.createElement('button');
+			addItemButton.type = 'button';
+			addItemButton.textContent = 'Add';
+			const addItem = (val: string) => {
+				if (isInteger(f.max) && listItems.length >= f.max!) return;
+				const item = buildItem(val);
+				listItems.push(item);
+				addItemButton.before(item.itemDiv);
+				item.itemDiv.dispatchEvent(new Event('change', { bubbles: true }));
+			};
+			addItemButton.addEventListener('click', () => addItem(''));
+			input.append(addItemButton);
+			const min = (isInteger(f.min) ? f.min : 1) as number;
+			const max = (isInteger(f.max) ? f.max : 20) as number;
+
+			getValue = () => {
+				const val = listItems.map(item => item.value).filter(Boolean);
+				if (isInteger(f.max)) return val.slice(0, f.max);
+				return val;
+			};
+			setValue = (val: string[]) => {
+				for (const item of listItems) item.remove();
+				listItems.length = 0;
+				if (val.length > max) val.length = max;
+				if (val.length < min) {
+					// Add extra blanks if necessary to hit minimum
+					val.push(...Array.from({ length: min - val.length }, () => ''));
+				}
+				for (const str of val) {
+					addItem(str);
+				}
+			};
+			setRequired = () => {
+
+			};
+
+			input.addEventListener('change', () => {
+				const isAtMin = listItems.length <= min;
+				const isAtMax = listItems.length >= max;
+				for (const item of listItems) {
+					item.deleteButton.style.visibility = isAtMin ? 'hidden' : '';
+				}
+				addItemButton.disabled = isAtMax;
+			});
+			setValue(Array.isArray(f.value) ? f.value : []);
 		}
 		else {
-			throw new Error(`field ${(f as Field).name} type invalid`);
+			throw new Error(`field "${(f as Field).name}" type invalid`);
 		}
 
 		// Stretch across entire grid if it's conditionally displayed. Otherwise, you get fields moving around left/right
@@ -415,7 +575,7 @@ const Form = (config: Config) => {
 		let _visible = true;
 		let _disabled = false;
 		let _required = false;
-		let _valid = true;
+		//let _valid = true;
 
 		const internals: FieldInternal = {
 			get type() {
@@ -450,7 +610,7 @@ const Form = (config: Config) => {
 				_visible = evaluateProperty(f.visible, true);
 				_disabled = evaluateProperty(f.disabled, false);
 				_required = evaluateProperty(f.required, false);
-				_valid = evaluateProperty(f.valid, true);
+				//_valid = evaluateProperty(f.valid, true);
 
 				if (_visible) {
 					div.style.display = '';
@@ -473,8 +633,6 @@ const Form = (config: Config) => {
 		return internals;
 	};
 
-
-
 	const isNumeric = (val: unknown): val is Number => {
 		return typeof val === 'number' && !Number.isNaN(val) && isFinite(val);
 	};
@@ -486,6 +644,10 @@ const Form = (config: Config) => {
 	const isDecimal = (val: unknown): boolean => {
 		return isNumeric(val) && !Number.isSafeInteger(val);
 	}
+
+	const normalizeMinMax = (f: Field) => {
+
+	};
 
 	const isVarRef = (val: unknown): val is VarRef => {
 		return !!val && typeof val === 'object' && 'var' in val && typeof val.var === 'string';
@@ -555,6 +717,7 @@ const Form = (config: Config) => {
 	 * Returns default if not defined. This is constantly run as the form updates
 	 */
 	const evaluateProperty = (propertyVal: Rule[] | boolean | undefined, defaultValue: boolean): boolean => {
+		console.log('Evaluating.')
 		if (typeof propertyVal === 'boolean') return propertyVal;
 		if (Array.isArray(propertyVal)) return propertyVal.every(rule => evaluateRule(rule));
 		return defaultValue;
@@ -636,7 +799,7 @@ const Form = (config: Config) => {
 
 	const getEmptyValue = ({ type }: FieldInternal) => {
 		if (type === 'checkbox') return false;
-		if (type === 'checkboxgroup') return [] as string[];
+		if (type === 'checkboxgroup' || type === 'list') return [] as string[];
 		return '';
 	};
 

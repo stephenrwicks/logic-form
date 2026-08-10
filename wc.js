@@ -1,15 +1,41 @@
 "use strict";
-const Form = (config) => {
-    const FIELDS = {};
-    const WATCHERS = {};
-    const metaKeys = new Set(['a', 'c', 'v', 'x']);
-    const integerAllowedKeys = new Set([
+class LogicForm extends HTMLElement {
+    #FIELDS = {};
+    #WATCHERS = {};
+    #config;
+    #metaKeys = new Set(['a', 'c', 'v', 'x']);
+    #integerAllowedKeys = new Set([
         'Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Tab', 'Home', 'End',
         '1', '2', '3', '4', '5', '6', '7', '8', '9', '0'
     ]);
-    const integers = new Set(['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']);
-    const buildField = (f) => {
-        if (f.name in FIELDS)
+    #integers = new Set(['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']);
+    #valueGetterObject = Object.create(null);
+    #isInit = false;
+    form = document.createElement('form');
+    constructor(config) {
+        super();
+        this.#config = config;
+    }
+    #isNumeric(val) {
+        return typeof val === 'number' && !Number.isNaN(val) && isFinite(val);
+    }
+    ;
+    #isInteger(val) {
+        return this.#isNumeric(val) && Number.isSafeInteger(val);
+    }
+    #isDecimal(val) {
+        return this.#isNumeric(val) && !Number.isSafeInteger(val);
+    }
+    #isVarRef(val) {
+        return !!val && typeof val === 'object' && 'var' in val && typeof val.var === 'string';
+    }
+    #isFlatStringArrayEqual(array1, array2) {
+        array1 = [...new Set(array1)].toSorted();
+        array2 = [...new Set(array2)].toSorted();
+        return array1.length === array2.length && array1.every((item, i) => item === array2[i]);
+    }
+    #buildField(f) {
+        if (f.name in this.#FIELDS)
             throw new Error(`"${f.name}" exists in the config twice. Can't have two fields named the same.`);
         const id = `_${f.type}_${crypto.randomUUID()}`;
         const div = document.createElement('div');
@@ -38,9 +64,9 @@ const Form = (config) => {
                 input.defaultValue = f.value ?? '';
             if (f.placeholder)
                 input.placeholder = f.placeholder;
-            if (f.maxLength && isInteger(f.maxLength))
+            if (f.maxLength && this.#isInteger(f.maxLength))
                 input.maxLength = f.maxLength;
-            if (f.minLength && isInteger(f.minLength))
+            if (f.minLength && this.#isInteger(f.minLength))
                 input.minLength = f.minLength;
             div.replaceChildren(label, input);
             getValue = () => input.value.trim();
@@ -70,16 +96,16 @@ const Form = (config) => {
             setRequired = (bool) => input.required = !!bool;
         }
         else if (f.type === 'integer' || f.type === 'decimal') {
-            const maxLength = isInteger(f.max) ? String(f.max).length : 15;
+            const maxLength = this.#isInteger(f.max) ? String(f.max).length : 15;
             eventToListenFor = 'input';
             input = document.createElement('input');
             input.id = id;
             input.name = f.name;
             input.type = 'number';
             input.placeholder = f.placeholder ?? '';
-            const hasMin = isNumeric(f.min);
-            const hasMax = isNumeric(f.max);
-            if (isNumeric(f.value)) {
+            const hasMin = this.#isNumeric(f.min);
+            const hasMax = this.#isNumeric(f.max);
+            if (this.#isNumeric(f.value)) {
                 input.defaultValue = String(f.value);
             }
             if (hasMin && hasMax && f.min > f.max) {
@@ -93,14 +119,14 @@ const Form = (config) => {
             }
             div.replaceChildren(label, input);
             input.addEventListener('keydown', (e) => {
-                const isPasteOrSomething = (e.ctrlKey || e.metaKey) && metaKeys.has(e.key.toLowerCase());
+                const isPasteOrSomething = (e.ctrlKey || e.metaKey) && this.#metaKeys.has(e.key.toLowerCase());
                 if (isPasteOrSomething) {
                     return;
                 }
-                if (input.value.length > maxLength && integers.has(e.key)) {
+                if (input.value.length > maxLength && this.#integers.has(e.key)) {
                     e.preventDefault();
                 }
-                if (!integerAllowedKeys.has(e.key)) {
+                if (!this.#integerAllowedKeys.has(e.key)) {
                     e.preventDefault();
                 }
             });
@@ -108,7 +134,7 @@ const Form = (config) => {
             });
             getValue = () => {
                 const val = input.valueAsNumber;
-                if (isNumeric(val)) {
+                if (this.#isNumeric(val)) {
                     if (f.type === 'decimal')
                         return val;
                     return Math.floor(val);
@@ -117,7 +143,7 @@ const Form = (config) => {
             };
             setRequired = (bool) => input.required = !!bool;
             setValue = (val) => {
-                if (!isNumeric(val)) {
+                if (!this.#isNumeric(val)) {
                     input.value = '';
                     return;
                 }
@@ -155,8 +181,8 @@ const Form = (config) => {
             legend.replaceChildren(f.label.trim(), requiredSpan);
             input.append(legend);
             div.replaceChildren(input);
-            const hasMin = isNumeric(f.min);
-            const hasMax = isNumeric(f.max);
+            const hasMin = this.#isNumeric(f.min);
+            const hasMax = this.#isNumeric(f.max);
             if (hasMin && hasMax && f.min > f.max) {
                 f.max = f.min;
             }
@@ -175,8 +201,8 @@ const Form = (config) => {
             }
             const minMax = () => {
                 let validityMessage = '';
-                const hasMin = isInteger(f.min) || f.required;
-                const hasMax = isInteger(f.max);
+                const hasMin = this.#isInteger(f.min) || f.required;
+                const hasMax = this.#isInteger(f.max);
                 if (hasMin && f.min > f.options.length)
                     throw new Error(`${f.name} min is greater than total options`);
                 if (hasMin && hasMax && f.min > f.options.length)
@@ -301,8 +327,8 @@ const Form = (config) => {
                     get value() {
                         return itemInput.value.trim();
                     },
-                    remove() {
-                        if (isInteger(f.min) && listItems.length <= f.min)
+                    remove: () => {
+                        if (this.#isInteger(f.min) && listItems.length <= f.min)
                             return;
                         listItems.splice(listItems.findIndex(x => x === object), 1);
                         itemDiv.dispatchEvent(new Event('change', { bubbles: true }));
@@ -315,7 +341,7 @@ const Form = (config) => {
             addItemButton.type = 'button';
             addItemButton.textContent = 'Add';
             const addItem = (val) => {
-                if (isInteger(f.max) && listItems.length >= f.max)
+                if (this.#isInteger(f.max) && listItems.length >= f.max)
                     return;
                 const item = buildItem(val);
                 listItems.push(item);
@@ -324,11 +350,11 @@ const Form = (config) => {
             };
             addItemButton.addEventListener('click', () => addItem(''));
             input.append(addItemButton);
-            const min = (isInteger(f.min) ? f.min : 1);
-            const max = (isInteger(f.max) ? f.max : 20);
+            const min = (this.#isInteger(f.min) ? f.min : 1);
+            const max = (this.#isInteger(f.max) ? f.max : 20);
             getValue = () => {
                 const val = listItems.map(item => item.value).filter(Boolean);
-                if (isInteger(f.max))
+                if (this.#isInteger(f.max))
                     return val.slice(0, f.max);
                 return val;
             };
@@ -360,18 +386,19 @@ const Form = (config) => {
         else {
             throw new Error(`field "${f.name}" type invalid`);
         }
-        for (const fieldName of getFieldNamesToWatch(f)) {
-            if (!(WATCHERS[fieldName] instanceof Set)) {
-                WATCHERS[fieldName] = new Set();
+        for (const fieldName of this.#getFieldNamesToWatch(f)) {
+            if (!(this.#WATCHERS[fieldName] instanceof Set)) {
+                this.#WATCHERS[fieldName] = new Set();
             }
-            WATCHERS[fieldName].add(f.name);
+            this.#WATCHERS[fieldName].add(f.name);
         }
         input.addEventListener(eventToListenFor, () => {
-            fireRecursiveDependencyUpdate(f.name);
+            this.#fireRecursiveDependencyUpdate(f.name);
         });
         let _visible = true;
         let _disabled = false;
         let _required = false;
+        const cl = this;
         const internals = {
             get type() {
                 return f.type;
@@ -381,12 +408,12 @@ const Form = (config) => {
             },
             get value() {
                 if (_disabled || !_visible)
-                    return getEmptyValue(this);
+                    return cl.#getEmptyValue(this);
                 return getValue();
             },
             set value(val) {
                 setValue(val);
-                fireRecursiveDependencyUpdate(f.name);
+                cl.#fireRecursiveDependencyUpdate(f.name);
             },
             get visible() {
                 return _visible;
@@ -401,9 +428,9 @@ const Form = (config) => {
                 return div;
             },
             updateState() {
-                _visible = evaluateProperty(f.visible, true);
-                _disabled = evaluateProperty(f.disabled, false);
-                _required = evaluateProperty(f.required, false);
+                _visible = cl.#evaluateProperty(f.visible, true);
+                _disabled = cl.#evaluateProperty(f.disabled, false);
+                _required = cl.#evaluateProperty(f.required, false);
                 if (_visible) {
                     div.style.display = '';
                     input.disabled = false || _disabled;
@@ -416,54 +443,47 @@ const Form = (config) => {
                 input.disabled = _disabled || !_visible;
             },
         };
-        FIELDS[f.name] = internals;
+        this.#FIELDS[f.name] = internals;
         return internals;
-    };
-    const isNumeric = (val) => {
-        return typeof val === 'number' && !Number.isNaN(val) && isFinite(val);
-    };
-    const isInteger = (val) => {
-        return isNumeric(val) && Number.isSafeInteger(val);
-    };
-    const isDecimal = (val) => {
-        return isNumeric(val) && !Number.isSafeInteger(val);
-    };
-    const normalizeMinMax = (f) => {
-    };
-    const isVarRef = (val) => {
-        return !!val && typeof val === 'object' && 'var' in val && typeof val.var === 'string';
-    };
-    const getFieldNamesToWatch = (field) => {
+    }
+    #getEmptyValue({ type }) {
+        if (type === 'checkbox')
+            return false;
+        if (type === 'checkboxgroup' || type === 'list')
+            return [];
+        return '';
+    }
+    #getFieldNamesToWatch(field) {
         const resultSet = new Set();
         const collectVars = (rule) => {
             if ('==' in rule) {
                 for (const item of rule['=='])
-                    if (isVarRef(item))
+                    if (this.#isVarRef(item))
                         resultSet.add(item.var);
             }
             else if ('!=' in rule) {
                 for (const item of rule['!='])
-                    if (isVarRef(item))
+                    if (this.#isVarRef(item))
                         resultSet.add(item.var);
             }
             else if ('>' in rule) {
                 for (const item of rule['>'])
-                    if (isVarRef(item))
+                    if (this.#isVarRef(item))
                         resultSet.add(item.var);
             }
             else if ('<' in rule) {
                 for (const item of rule['<'])
-                    if (isVarRef(item))
+                    if (this.#isVarRef(item))
                         resultSet.add(item.var);
             }
             else if ('>=' in rule) {
                 for (const item of rule['>='])
-                    if (isVarRef(item))
+                    if (this.#isVarRef(item))
                         resultSet.add(item.var);
             }
             else if ('<=' in rule) {
                 for (const item of rule['<='])
-                    if (isVarRef(item))
+                    if (this.#isVarRef(item))
                         resultSet.add(item.var);
             }
             else if ('not' in rule) {
@@ -489,179 +509,178 @@ const Form = (config) => {
         collectAllVarNames(field.required);
         collectAllVarNames(field.disabled);
         return resultSet;
-    };
-    const evaluateProperty = (propertyVal, defaultValue) => {
+    }
+    #fireRecursiveDependencyUpdate(fieldName) {
+        if (!(this.#WATCHERS[fieldName] instanceof Set))
+            return;
+        for (const watcherName of this.#WATCHERS[fieldName]) {
+            this.#FIELDS[watcherName].updateState();
+            if (this.#WATCHERS[watcherName] instanceof Set) {
+                this.#fireRecursiveDependencyUpdate(watcherName);
+            }
+        }
+    }
+    #evaluateProperty(propertyVal, defaultValue) {
         console.log('Evaluating.');
         if (typeof propertyVal === 'boolean')
             return propertyVal;
         if (Array.isArray(propertyVal))
-            return propertyVal.every(rule => evaluateRule(rule));
+            return propertyVal.every(rule => this.#evaluateRule(rule));
         return defaultValue;
-    };
-    const readRuleSide = (side) => {
-        if (isVarRef(side)) {
-            return FIELDS[side.var].value;
-        }
-        return side;
-    };
-    const isFlatStringArrayEqual = (array1, array2) => {
-        array1 = [...new Set(array1)].toSorted();
-        array2 = [...new Set(array2)].toSorted();
-        return array1.length === array2.length && array1.every((item, i) => item === array2[i]);
-    };
-    const evaluateRule = (rule) => {
+    }
+    ;
+    #evaluateRule(rule) {
         if ('==' in rule) {
             const [left, right] = rule['=='];
-            const side1 = readRuleSide(left);
-            const side2 = readRuleSide(right);
+            const side1 = this.#readRuleSide(left);
+            const side2 = this.#readRuleSide(right);
             if (Array.isArray(side1) && Array.isArray(side2))
-                return isFlatStringArrayEqual(side1, side2);
+                return this.#isFlatStringArrayEqual(side1, side2);
             return side1 === side2;
         }
         if ('!=' in rule) {
             const [left, right] = rule['!='];
-            const side1 = readRuleSide(left);
-            const side2 = readRuleSide(right);
+            const side1 = this.#readRuleSide(left);
+            const side2 = this.#readRuleSide(right);
             if (Array.isArray(side1) && Array.isArray(side2))
-                return isFlatStringArrayEqual(side1, side2) === false;
-            return readRuleSide(left) !== readRuleSide(right);
+                return this.#isFlatStringArrayEqual(side1, side2) === false;
+            return this.#readRuleSide(left) !== this.#readRuleSide(right);
         }
         if ('>' in rule) {
             const [left, right] = rule['>'];
-            return readRuleSide(left) > readRuleSide(right);
+            return this.#readRuleSide(left) > this.#readRuleSide(right);
         }
         if ('<' in rule) {
             const [left, right] = rule['<'];
-            return readRuleSide(left) < readRuleSide(right);
+            return this.#readRuleSide(left) < this.#readRuleSide(right);
         }
         if ('>=' in rule) {
             const [left, right] = rule['>='];
-            return readRuleSide(left) >= readRuleSide(right);
+            return this.#readRuleSide(left) >= this.#readRuleSide(right);
         }
         if ('<=' in rule) {
             const [left, right] = rule['<='];
-            return readRuleSide(left) <= readRuleSide(right);
+            return this.#readRuleSide(left) <= this.#readRuleSide(right);
         }
         if ('not' in rule) {
-            return evaluateRule(rule.not) === false;
+            return this.#evaluateRule(rule.not) === false;
         }
         if ('and' in rule) {
-            return rule.and.every((r) => evaluateRule(r));
+            return rule.and.every((r) => this.#evaluateRule(r));
         }
         if ('or' in rule) {
-            return rule.or.some((r) => evaluateRule(r));
+            return rule.or.some((r) => this.#evaluateRule(r));
         }
         return true;
-    };
-    const getEmptyValue = ({ type }) => {
-        if (type === 'checkbox')
-            return false;
-        if (type === 'checkboxgroup' || type === 'list')
-            return [];
-        return '';
-    };
-    const fireRecursiveDependencyUpdate = (fieldName) => {
-        if (!(WATCHERS[fieldName] instanceof Set))
+    }
+    ;
+    #readRuleSide(side) {
+        if (this.#isVarRef(side)) {
+            return this.#FIELDS[side.var].value;
+        }
+        return side;
+    }
+    connectedCallback() {
+        if (this.#isInit)
             return;
-        for (const watcherName of WATCHERS[fieldName]) {
-            FIELDS[watcherName].updateState();
-            if (WATCHERS[watcherName] instanceof Set) {
-                fireRecursiveDependencyUpdate(watcherName);
+        if (this.dataset.config) {
+            this.#config = JSON.parse(this.dataset.config);
+            this.removeAttribute('data-config');
+        }
+        for (const attr of ['action', 'enctype', 'method', 'novalidate', 'target', 'autocomplete']) {
+            if (this.hasAttribute(attr)) {
+                const val = this.getAttribute(attr) ?? '';
+                this.removeAttribute(attr);
+                this.form.setAttribute(attr, val);
             }
         }
-    };
-    const form = document.createElement('form');
-    const titleEl = document.createElement('p');
-    titleEl.textContent = config.title?.trim() ?? '';
-    titleEl.style.gridColumn = '1/-1';
-    form.append(titleEl);
-    const submitButton = document.createElement('button');
-    submitButton.type = 'submit';
-    submitButton.textContent = 'Submit';
-    const clear = () => {
-        for (const f of Object.values(FIELDS)) {
-            f.value = getEmptyValue(f);
+        const titleEl = document.createElement('p');
+        titleEl.textContent = this.#config.title?.trim() ?? '';
+        titleEl.style.gridColumn = '1/-1';
+        this.form.append(titleEl);
+        const submitButton = document.createElement('button');
+        submitButton.type = 'submit';
+        submitButton.textContent = 'Submit';
+        const clearButton = document.createElement('button');
+        clearButton.type = 'button';
+        clearButton.textContent = 'Clear';
+        clearButton.addEventListener('click', () => this.clear());
+        const resetButton = document.createElement('button');
+        resetButton.type = 'button';
+        resetButton.textContent = 'Reset';
+        resetButton.addEventListener('click', () => this.reset());
+        const buttonRow = document.createElement('div');
+        buttonRow.replaceChildren(resetButton, clearButton, submitButton);
+        for (const f of this.#config.fields) {
+            const fieldInternal = this.#buildField(f);
+            Object.defineProperty(this.#valueGetterObject, f.name, {
+                get() {
+                    return fieldInternal.value;
+                },
+                set(value) {
+                    fieldInternal.value = value;
+                },
+                enumerable: true,
+            });
+            this.form.append(fieldInternal.el);
         }
-        return valueGetterObject;
-    };
-    const clearButton = document.createElement('button');
-    clearButton.type = 'button';
-    clearButton.textContent = 'Clear';
-    clearButton.addEventListener('click', clear);
-    const resetButton = document.createElement('button');
-    const reset = () => {
-        form.reset();
-        for (const fieldInternal of Object.values(FIELDS)) {
+        this.form.append(buttonRow);
+        for (const fieldInternal of Object.values(this.#FIELDS)) {
             fieldInternal.updateState();
         }
-        return valueGetterObject;
-    };
-    resetButton.type = 'button';
-    resetButton.addEventListener('click', reset);
-    resetButton.textContent = 'Reset';
-    const buttonRow = document.createElement('div');
-    buttonRow.replaceChildren(resetButton, clearButton, submitButton);
-    const valueGetterObject = Object.create(null);
-    for (const f of config.fields) {
-        const fieldInternal = buildField(f);
-        Object.defineProperty(valueGetterObject, f.name, {
-            get() {
-                return fieldInternal.value;
-            },
-            set(value) {
-                fieldInternal.value = value;
-            },
-            enumerable: true,
-        });
-        form.append(fieldInternal.el);
+        this.replaceChildren(this.form);
+        this.#isInit = true;
     }
-    form.append(buttonRow);
-    for (const fieldInternal of Object.values(FIELDS)) {
-        fieldInternal.updateState();
+    get value() {
+        return this.#valueGetterObject;
     }
-    const states = {};
-    return {
-        el: form,
-        get value() {
-            return valueGetterObject;
-        },
-        set value(val) {
-            for (const key in val) {
-                FIELDS[key].value = val[key];
-            }
-        },
-        get data() {
-            const result = {};
-            for (const f of Object.values(FIELDS)) {
-                if (f.disabled || !f.visible)
-                    continue;
-                result[f.name] = f.value;
-            }
-            return result;
-        },
-        clear() {
-            return clear();
-        },
-        reset() {
-            return reset();
-        },
-        get json() {
-            return JSON.stringify(valueGetterObject);
-        },
-        get formData() {
-            return new FormData(form);
-        },
-        saveState(name) {
-            const clone = structuredClone(valueGetterObject);
-            states[name] = clone;
-            return clone;
-        },
-        loadState(name) {
-            const value = states[name];
-            if (!value)
-                return;
-            this.value = value;
-            return structuredClone(value);
+    set value(val) {
+        for (const key in val) {
+            this.#FIELDS[key].value = val[key];
         }
-    };
-};
+    }
+    getValue() {
+        const result = {};
+        for (const f of Object.values(this.#FIELDS)) {
+            if (f.disabled || !f.visible)
+                continue;
+            result[f.name] = f.value;
+        }
+        return result;
+    }
+    getJson() {
+        return JSON.stringify(this.#valueGetterObject);
+    }
+    getFormData() {
+        return new FormData(this.form);
+    }
+    clear() {
+        for (const f of Object.values(this.#FIELDS)) {
+            f.value = this.#getEmptyValue(f);
+        }
+        return this.#valueGetterObject;
+    }
+    reset() {
+        this.form.reset();
+        for (const fieldInternal of Object.values(this.#FIELDS)) {
+            fieldInternal.updateState();
+        }
+        return this.#valueGetterObject;
+    }
+    #states = {};
+    saveState(name) {
+        const clone = structuredClone(this.#valueGetterObject);
+        this.#states[name] = clone;
+        return clone;
+    }
+    loadState(name) {
+        const value = this.#states[name];
+        if (!value)
+            return;
+        this.value = value;
+        return structuredClone(value);
+    }
+    setConfig(config) {
+    }
+}
+customElements.define('logic-form', LogicForm);
