@@ -4,107 +4,104 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/stephenrwicks/wicks.css@main/wicks.css">
+    <script src="wc.js"></script>
 </head>
 
 <body>
-    <script src="wc.js"></script>
-    <!-- <script src="demo4.js"></script> -->
 
-    <logic-form id="test" action="https://postman-echo.com/post" method="POST" data-config='{
-  "title": "Library Membership",
+    <!-- <details name="accordion"> -->
+        <!-- <summary>Basic form</summary> -->
+        <logic-form id="test" action="https://postman-echo.com/post" method="POST" data-config='{
+  "title": "Form Control Showcase",
   "fields": [
     {
       "type": "textbox",
-      "name": "name",
-      "label": "Full Name",
+      "name": "fullName",
+      "label": "Full Name (textbox)",
+      "value": ""
+    },
+    {
+      "type": "textarea",
+      "name": "comments",
+      "label": "Comments (textarea)",
       "value": "",
-      "required": true
+      "placeholder": "placeholder"
+    },
+    {
+      "type": "checkbox",
+      "name": "newsletter",
+      "label": "Subscribe to newsletter (checkbox)",
+      "value": false
     },
     {
       "type": "select",
-      "name": "membership",
-      "label": "Membership Type",
+      "name": "branch",
+      "label": "Branch (select)",
       "value": "",
       "options": [
-        { "text": "Resident", "value": "resident" },
-        { "text": "Non-Resident", "value": "nonresident" },
-        { "text": "Institutional", "value": "institutional" }
-      ],
-      "required": true
+        { "text": "Downtown", "value": "downtown" },
+        { "text": "West End", "value": "west" },
+        { "text": "University", "value": "university" }
+      ]
     },
     {
-      "type": "checkboxgroup",
-      "name": "services",
-      "label": "Services",
-      "value": [],
-      "options": [
-        { "text": "Computer Access", "value": "computers" },
-        { "text": "Printing", "value": "printing" },
-        { "text": "Research Assistance", "value": "research" },
-        { "text": "Meeting Rooms", "value": "rooms" }
-      ],
-      "min": 2,
-      "visible": [
-        { "!=": [{ "var": "membership" }, ""] }
-      ],
-      "required": [
-        { "==": [{ "var": "membership" }, "resident"] }
-      ]
+      "type": "numerictextbox",
+      "name": "age",
+      "label": "Age (numerictextbox)",
+      "value": ""
     },
     {
       "type": "integer",
       "name": "householdSize",
-      "label": "Household Size",
-      "value": 1,
-      "min": 1,
-      "max": 20,
-      "required": [
-        { "==": [{ "var": "membership" }, "resident"] }
-      ],
-      "disabled": [
-        { "==": [{ "var": "membership" }, "institutional"] }
-      ]
+      "label": "Household Size (integer)",
+      "value": 1
     },
     {
-      "type": "checkbox",
-      "name": "needsComputer",
-      "label": "Needs computer access",
-      "value": false,
-      "visible": [
-        { "==": [{ "var": "membership" }, "resident"] }
-      ]
+      "type": "decimal",
+      "name": "income",
+      "label": "Annual Income (decimal)",
+      "value": ""
     },
     {
-      "type": "select",
-      "name": "computerDuration",
-      "label": "Computer Session Duration",
-      "value": "",
+      "type": "checkboxgroup",
+      "name": "services",
+      "label": "Services (checkboxgroup)",
+      "value": [],
       "options": [
-        { "text": "30 minutes", "value": "30" },
-        { "text": "1 hour", "value": "60" },
-        { "text": "2 hours", "value": "120" }
-      ],
-      "visible": [
-        { "==": [{ "var": "needsComputer" }, true] }
-      ],
-      "required": [
-        { "==": [{ "var": "needsComputer" }, true] }
+        { "text": "Computers", "value": "computers" },
+        { "text": "Printing", "value": "printing" },
+        { "text": "Research", "value": "research" }
       ]
     },
     {
-      "type": "textarea",
-      "name": "notes",
-      "label": "Additional Notes",
-      "value": "",
-      "visible": [
-        { "==": [{ "var": "membership" }, "institutional"] }
-      ],
-      "required": [
-        { "==": [{ "var": "membership" }, "institutional"] }
+      "type": "radiogroup",
+      "name": "membership",
+      "label": "Membership Type (radiogroup)",
+      "value": "resident",
+      "options": [
+        { "text": "Resident", "value": "resident" },
+        { "text": "Non-Resident", "value": "nonresident" },
+        { "text": "Institutional", "value": "institutional" }
       ]
+    },
+    {
+      "type": "list",
+      "name": "favoriteBooks",
+      "label": "Favorite Books (list)",
+      "value": [],
+        "min": 4,
+        "max": 6
+    },
+        {
+      "type": "date",
+      "name": "when",
+      "label": "When? (date)"
     }
   ]
 }'></logic-form>
+    <!-- </details> -->
+
+
 
 
     <script>const x = document.querySelector('#test');</script>

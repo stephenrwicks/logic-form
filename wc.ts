@@ -2,20 +2,22 @@
 
 class LogicForm extends HTMLElement {
 
-    // field name => internal object
-    #FIELDS: Record<string, FieldInternal> = {};
-    // field name => subscriber names
-    #WATCHERS: Record<string, Set<string>> = {};
+    // json config
     #config: Config;
+    // field name => internal object
+    #fields: Record<string, FieldInternal> = {};
+    // field name => subscriber names
+    #watchers: Record<string, Set<string>> = {};
+    // snapshots
+    #states: Record<string, Record<string, Value>> = {};
     #metaKeys = new Set(['a', 'c', 'v', 'x']);
     #integerAllowedKeys = new Set([
         'Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Tab', 'Home', 'End',
         '1', '2', '3', '4', '5', '6', '7', '8', '9', '0'
     ]);
     #integers = new Set(['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']);
-    #valueGetterObject = Object.create(null);
+    #valueGetterObject: any;
     #isInit = false;
-
 
     form = document.createElement('form');
 
@@ -28,11 +30,11 @@ class LogicForm extends HTMLElement {
         return typeof val === 'number' && !Number.isNaN(val) && isFinite(val);
     };
 
-    #isInteger(val: unknown): boolean {
+    #isInteger(val: unknown): val is Number {
         return this.#isNumeric(val) && Number.isSafeInteger(val);
     }
 
-    #isDecimal(val: unknown): boolean {
+    #isDecimal(val: unknown): val is Number {
         return this.#isNumeric(val) && !Number.isSafeInteger(val);
     }
 
@@ -49,9 +51,11 @@ class LogicForm extends HTMLElement {
     }
 
     #buildField(f: Field) {
-        if (f.name in this.#FIELDS) throw new Error(`"${f.name}" exists in the config twice. Can't have two fields named the same.`)
+        if (f.name in this.#fields) throw new Error(`"${f.name}" exists in the config twice. Can't have two fields named the same.`)
         const id = `_${f.type}_${crypto.randomUUID()}`;
         const div = document.createElement('div');
+        div.dataset.fieldName = f.name;
+        div.dataset.fieldType = f.type;
         const label = document.createElement('label');
         const labelSpan = document.createElement('span');
         const requiredSpan = document.createElement('span');
@@ -70,7 +74,7 @@ class LogicForm extends HTMLElement {
         if (f.type === 'textbox' || f.type === 'textarea' || f.type === 'numerictextbox') {
             eventToListenFor = 'input'
             input = document.createElement(f.type === 'textarea' ? 'textarea' : 'input');
-            if (f.type === 'textbox') (input as HTMLInputElement).type = 'text';
+            if (f.type === 'textbox' || f.type === 'numerictextbox') (input as HTMLInputElement).type = 'text';
             input.id = id;
             input.name = f.name;
             if (f.value) input.defaultValue = f.value ?? '';
@@ -352,7 +356,7 @@ class LogicForm extends HTMLElement {
             legend.replaceChildren(f.label.trim(), requiredSpan);
             input.append(legend);
             div.replaceChildren(input);
-            const listItems: ReturnType<typeof buildItem>[] = [];
+            const listItems: Set<ReturnType<typeof buildItem>> = new Set();
             const buildItem = (val = '') => {
                 const itemDiv = document.createElement('div');
                 itemDiv.style.display = 'flex';
@@ -360,7 +364,7 @@ class LogicForm extends HTMLElement {
                 const deleteButton = document.createElement('button');
                 deleteButton.type = 'button';
                 deleteButton.title = 'Remove';
-                deleteButton.textContent = 'X';
+                deleteButton.textContent = '×';
                 deleteButton.addEventListener('click', () => object.remove());
                 const itemInput = document.createElement('input');
                 itemInput.type = 'text';
@@ -373,8 +377,8 @@ class LogicForm extends HTMLElement {
                         return itemInput.value.trim();
                     },
                     remove: () => {
-                        if (this.#isInteger(f.min) && listItems.length <= f.min!) return;
-                        listItems.splice(listItems.findIndex(x => x === object), 1);
+                        if (this.#isInteger(f.min) && listItems.size <= f.min) return;
+                        listItems.delete(object);
                         itemDiv.dispatchEvent(new Event('change', { bubbles: true }));
                         itemDiv.remove();
                     }
@@ -385,32 +389,42 @@ class LogicForm extends HTMLElement {
             addItemButton.type = 'button';
             addItemButton.textContent = 'Add';
             const addItem = (val: string) => {
-                if (this.#isInteger(f.max) && listItems.length >= f.max!) return;
+                if (this.#isInteger(f.max) && listItems.size >= f.max!) return;
                 const item = buildItem(val);
-                listItems.push(item);
+                listItems.add(item);
                 addItemButton.before(item.itemDiv);
                 item.itemDiv.dispatchEvent(new Event('change', { bubbles: true }));
             };
             addItemButton.addEventListener('click', () => addItem(''));
             input.append(addItemButton);
-            const min = (this.#isInteger(f.min) ? f.min : 1) as number;
-            const max = (this.#isInteger(f.max) ? f.max : 20) as number;
+            const min = this.#isInteger(f.min) ? f.min : 1;
+            const max = this.#isInteger(f.max) ? f.max : 20;
 
             getValue = () => {
-                const val = listItems.map(item => item.value).filter(Boolean);
+                const val = [...listItems].map(item => item.value).filter(Boolean);
                 if (this.#isInteger(f.max)) return val.slice(0, f.max);
                 return val;
             };
+            // This makes it impossible to clear properly since we always add extras
             setValue = (val: string[]) => {
+                val = val.filter(Boolean);
                 for (const item of listItems) item.remove();
-                listItems.length = 0;
+
                 if (val.length > max) val.length = max;
-                if (val.length < min) {
-                    // Add extra blanks if necessary to hit minimum
-                    val.push(...Array.from({ length: min - val.length }, () => ''));
-                }
+
                 for (const str of val) {
                     addItem(str);
+                }
+
+
+                if (listItems.size < min) {
+                    // Add extra blanks if necessary to hit minimum
+                    const blanksToAdd = min - listItems.size;
+                    for (let i = 0; i < blanksToAdd; i++) {
+                        addItem('');
+                    }
+
+                    //val.push(...Array.from({ length: min - val.length }, () => ''));
                 }
             };
             setRequired = () => {
@@ -418,14 +432,27 @@ class LogicForm extends HTMLElement {
             };
 
             input.addEventListener('change', () => {
-                const isAtMin = listItems.length <= min;
-                const isAtMax = listItems.length >= max;
+                const isAtMin = listItems.size <= min;
+                const isAtMax = listItems.size >= max;
                 for (const item of listItems) {
                     item.deleteButton.style.visibility = isAtMin ? 'hidden' : '';
                 }
                 addItemButton.disabled = isAtMax;
             });
             setValue(Array.isArray(f.value) ? f.value : []);
+        }
+        else if (f.type === 'date') {
+            input = document.createElement('input');
+            input.type = 'date';
+            input.id = id;
+            div.replaceChildren(label, input);
+
+            setValue = () => {
+
+            };
+            setRequired = () => {
+
+            };
         }
         else {
             throw new Error(`field "${(f as Field).name}" type invalid`);
@@ -439,10 +466,10 @@ class LogicForm extends HTMLElement {
         //}
 
         for (const fieldName of this.#getFieldNamesToWatch(f)) {
-            if (!(this.#WATCHERS[fieldName] instanceof Set)) {
-                this.#WATCHERS[fieldName] = new Set();
+            if (!(this.#watchers[fieldName] instanceof Set)) {
+                this.#watchers[fieldName] = new Set();
             }
-            this.#WATCHERS[fieldName].add(f.name);
+            this.#watchers[fieldName].add(f.name);
         }
 
         input.addEventListener(eventToListenFor, () => {
@@ -505,14 +532,17 @@ class LogicForm extends HTMLElement {
             },
         }
 
-        this.#FIELDS[f.name] = internals;
+        this.#fields[f.name] = internals;
 
         return internals;
     }
 
-    #getEmptyValue({ type }: FieldInternal) {
-        if (type === 'checkbox') return false;
-        if (type === 'checkboxgroup' || type === 'list') return [] as string[];
+    #getEmptyValue(f: FieldInternal) {
+        if (f.type === 'checkbox') return false;
+        if (f.type === 'checkboxgroup') return [] as string[];
+        if (f.type === 'list') {
+            return [] as string[];
+        }
         return '';
     }
 
@@ -570,10 +600,10 @@ class LogicForm extends HTMLElement {
         * This can be batched probably.
     */
     #fireRecursiveDependencyUpdate(fieldName: string) {
-        if (!(this.#WATCHERS[fieldName] instanceof Set)) return;
-        for (const watcherName of this.#WATCHERS[fieldName]) {
-            this.#FIELDS[watcherName].updateState();
-            if (this.#WATCHERS[watcherName] instanceof Set) {
+        if (!(this.#watchers[fieldName] instanceof Set)) return;
+        for (const watcherName of this.#watchers[fieldName]) {
+            this.#fields[watcherName].updateState();
+            if (this.#watchers[watcherName] instanceof Set) {
                 this.#fireRecursiveDependencyUpdate(watcherName);
             }
         }
@@ -649,18 +679,24 @@ class LogicForm extends HTMLElement {
     */
     #readRuleSide(side: VarRef | Value): Value {
         if (this.#isVarRef(side)) {
-            return this.#FIELDS[side.var].value;
+            return this.#fields[side.var].value;
         }
         // Is already some kind of value so we return that.
         return side;
     }
 
 
+    #titleEl = document.createElement('p');
+    #submitButton = document.createElement('button');
+    #clearButton = document.createElement('button');
+    #resetButton = document.createElement('button');
+    #buttonRow = document.createElement('div');
+
     connectedCallback() {
         if (this.#isInit) return;
 
         if (this.dataset.config) {
-            this.#config = JSON.parse(this.dataset.config) as Config;
+            this.setConfig(JSON.parse(this.dataset.config));
             this.removeAttribute('data-config');
         }
 
@@ -672,28 +708,83 @@ class LogicForm extends HTMLElement {
             }
         }
 
-        const titleEl = document.createElement('p');
-        titleEl.textContent = this.#config.title?.trim() ?? '';
-        titleEl.style.gridColumn = '1/-1';
-        this.form.append(titleEl);
 
-        const submitButton = document.createElement('button');
-        submitButton.type = 'submit';
-        submitButton.textContent = 'Submit';
+        this.#titleEl.style.gridColumn = '1/-1';
 
-        const clearButton = document.createElement('button');
-        clearButton.type = 'button';
-        clearButton.textContent = 'Clear';
-        clearButton.addEventListener('click', () => this.clear());
+        this.#submitButton.type = 'submit';
+        this.#submitButton.textContent = 'Submit';
 
-        const resetButton = document.createElement('button');
-        resetButton.type = 'button';
-        resetButton.textContent = 'Reset';
-        resetButton.addEventListener('click', () => this.reset());
+        this.#clearButton.type = 'button';
+        this.#clearButton.textContent = 'Clear';
+        this.#clearButton.addEventListener('click', () => this.clear());
 
-        const buttonRow = document.createElement('div');
-        buttonRow.replaceChildren(resetButton, clearButton, submitButton);
+        this.#resetButton.type = 'button';
+        this.#resetButton.textContent = 'Reset';
+        this.#resetButton.addEventListener('click', () => this.reset());
 
+        this.#buttonRow.replaceChildren(this.#resetButton, this.#clearButton, this.#submitButton);
+
+
+        this.style.display = 'contents';
+        this.replaceChildren(this.form);
+        this.#isInit = true;
+
+    }
+
+    get value() {
+        return this.#valueGetterObject;
+    }
+    set value(val: Record<string, Value>) {
+        for (const key in val) {
+            this.#fields[key].value = val[key];
+        }
+    }
+    getValue() {
+        const result: Record<string, Value> = {};
+        for (const f of Object.values(this.#fields)) {
+            if (f.disabled || !f.visible) continue;
+            result[f.name] = f.value;
+        }
+        return result;
+    }
+    getJson() {
+        return JSON.stringify(this.#valueGetterObject);
+    }
+    getFormData() {
+        return new FormData(this.form);
+    }
+    clear() {
+        for (const f of Object.values(this.#fields)) {
+            f.value = this.#getEmptyValue(f);
+        }
+        return this.#valueGetterObject;
+    }
+    reset() {
+        this.form.reset();
+        for (const fieldInternal of Object.values(this.#fields)) {
+            fieldInternal.updateState();
+        }
+        return this.#valueGetterObject;
+    }
+
+    saveState(name: string) {
+        const clone = structuredClone(this.#valueGetterObject);
+        this.#states[name] = clone;
+        return clone;
+    }
+    loadState(name: string) {
+        const value = this.#states[name];
+        if (!value) return;
+        this.value = value;
+        return structuredClone(value);
+    }
+    setConfig(config: Config) {
+        this.#config = config;
+        this.form.replaceChildren();
+        this.form.append(this.#titleEl);
+        this.#titleEl.textContent = config.title?.trim() ?? '';
+
+        this.#valueGetterObject = Object.create(null);
         for (const f of this.#config.fields) {
             const fieldInternal = this.#buildField(f);
             // Several layers of getter/setters here
@@ -709,73 +800,181 @@ class LogicForm extends HTMLElement {
                 enumerable: true,
             });
             this.form.append(fieldInternal.el);
-
         }
-        this.form.append(buttonRow);
 
-
-        // Update everything once after creating form
-        for (const fieldInternal of Object.values(this.#FIELDS)) {
+        for (const fieldInternal of Object.values(this.#fields)) {
             fieldInternal.updateState();
         }
 
-        this.replaceChildren(this.form);
-        this.#isInit = true;
-
-    }
-
-    get value() {
-        return this.#valueGetterObject;
-    }
-    set value(val: Record<string, Value>) {
-        for (const key in val) {
-            this.#FIELDS[key].value = val[key];
-        }
-    }
-    getValue() {
-        const result: Record<string, Value> = {};
-        for (const f of Object.values(this.#FIELDS)) {
-            if (f.disabled || !f.visible) continue;
-            result[f.name] = f.value;
-        }
-        return result;
-    }
-    getJson() {
-        return JSON.stringify(this.#valueGetterObject);
-    }
-    getFormData() {
-        return new FormData(this.form);
-    }
-    clear() {
-        for (const f of Object.values(this.#FIELDS)) {
-            f.value = this.#getEmptyValue(f);
-        }
-        return this.#valueGetterObject;
-    }
-    reset() {
-        this.form.reset();
-        for (const fieldInternal of Object.values(this.#FIELDS)) {
-            fieldInternal.updateState();
-        }
-        return this.#valueGetterObject;
-    }
-    // hang on to save states by name
-    #states: Record<string, Record<string, Value>> = {};
-    saveState(name: string) {
-        const clone = structuredClone(this.#valueGetterObject);
-        this.#states[name] = clone;
-        return clone;
-    }
-    loadState(name: string) {
-        const value = this.#states[name];
-        if (!value) return;
-        this.value = value;
-        return structuredClone(value);
-    }
-    setConfig(config: Config) {
-
+        this.form.append(this.#buttonRow);
     }
 
 }
 
-customElements.define('logic-form', LogicForm)
+customElements.define('logic-form', LogicForm);
+
+
+type Field = Textbox | Textarea | Checkbox | Select | NumericTextbox | Integer | Decimal | CheckboxGroup | RadioGroup | List | DateInput;
+
+type FieldBase = {
+    type: 'textbox' | 'textarea' | 'checkbox' | 'select' | 'numerictextbox' | 'integer' | 'decimal' | 'checkboxgroup' | 'radiogroup' | 'list' | 'date';
+    name: string;
+    label: string;
+    visible?: Rule[] | boolean;
+    required?: Rule[] | boolean;
+    disabled?: Rule[] | boolean;
+}
+
+type Textbox = FieldBase & {
+    type: 'textbox';
+    value?: string;
+    placeholder?: string;
+    minLength?: number;
+    maxLength?: number;
+}
+
+type Textarea = FieldBase & {
+    type: 'textarea';
+    value?: string;
+    placeholder?: string;
+    minLength?: number;
+    maxLength?: number;
+}
+
+type Checkbox = FieldBase & {
+    type: 'checkbox';
+    value?: boolean;
+}
+
+type NumericTextbox = FieldBase & {
+    type: 'numerictextbox';
+    value?: string;
+    placeholder?: string;
+    minLength?: number;
+    maxLength?: number;
+}
+
+type Integer = FieldBase & {
+    type: 'integer';
+    value?: number;
+    placeholder?: string;
+    min?: number;
+    max?: number;
+}
+
+type Decimal = FieldBase & {
+    type: 'decimal';
+    value?: number;
+    placeholder?: string;
+    min?: number;
+    max?: number;
+}
+
+type Select = FieldBase & {
+    type: 'select';
+    options: {
+        text: string;
+        value: string;
+        //disabled?: Rule[] | boolean;
+    }[];
+    value?: string;
+    placeholder?: string;
+}
+
+type CheckboxGroup = FieldBase & {
+    type: 'checkboxgroup';
+    options: {
+        text: string;
+        value: string;
+        //disabled?: Rule[] | boolean;
+    }[];
+    min?: number;
+    max?: number
+    value?: string[];
+}
+
+type RadioGroup = FieldBase & {
+    type: 'radiogroup';
+    options: {
+        text: string;
+        value: string;
+        //disabled?: Rule[] | boolean;
+    }[];
+    value?: string;
+}
+
+type List = FieldBase & {
+    type: 'list';
+    value?: string[];
+    min?: number;
+    max?: number;
+}
+
+type DateInput = FieldBase & {
+    type: 'date';
+    value?: string;
+    min?: string;
+    max?: string;
+}
+
+type Value = boolean | string | number | string[];
+type VarRef = { var: string }; // e.g. { "var": "fieldName" }
+type EqualsRule = { '==': [Value | VarRef, Value | VarRef] };
+type NotEqualsRule = { '!=': [Value | VarRef, Value | VarRef] };
+type LessThanRule = { '<': [Value | VarRef, Value | VarRef] };
+type LessThanOrEqualToRule = { '<=': [Value | VarRef, Value | VarRef] };
+type GreaterThanRule = { '>': [Value | VarRef, Value | VarRef] };
+type GreaterThanOrEqualToRule = { '>=': [Value | VarRef, Value | VarRef] };
+
+// metarules
+type AndRule = { and: Rule[] };
+type OrRule = { or: Rule[] };
+type NotRule = { not: Rule }; // { not: { '==': [{ var: 'fieldName' }, 'fieldValue'] } }
+
+type Rule = EqualsRule | NotEqualsRule | LessThanRule | LessThanOrEqualToRule | GreaterThanRule | GreaterThanOrEqualToRule | AndRule | OrRule | NotRule;
+
+type Config = {
+    title: string;
+    fields: Field[];
+    //fields: Field[] | Section[];
+}
+
+type Section = Config & {
+    visible?: Rule[] | boolean;
+    // repeatable
+}
+
+type FieldInternal = {
+    readonly type: FieldBase['type'];
+    readonly el: HTMLDivElement;
+    readonly name: string;
+    readonly visible: boolean;
+    readonly required: boolean;
+    readonly disabled: boolean;
+    //readonly readonly: boolean;
+    value: Value;
+    updateState(): void;
+};
+
+
+
+
+// Stuff to work on:
+// List input clearing bugs
+// Date input
+// Fix int, decimal, numeric inputs
+// Hidden input
+// Readonly state
+// Custom event bubbling
+// Live form builder
+// Disabled options
+// Rule-able min and max
+// Batch evaluation and DOM updates
+// Radio clear button styling, List button styling
+// in and !in rules
+// Select optgroups
+// Custom errors
+// Combobox input - Can reuse most of my custom one.
+// Sections
+// Conditional sections
+// Repeatable sections
