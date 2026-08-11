@@ -10,9 +10,19 @@ Field values are two-way bound with getters and setters: setting `form.value.fie
 
 Currently supports these field types:
 
-```text
-'textbox' | 'textarea' | 'checkbox' | 'select' | 'numerictextbox' | 'integer' | 'decimal' | 'checkboxgroup' | 'radiogroup' | 'list' | 'date'
-```
+
+*'textbox'
+*'textarea'
+*'checkbox'
+*'select'
+*'numerictextbox'
+*'integer'
+*'decimal'
+*'checkboxgroup'
+*'radiogroup'
+*'list'
+*'date'
+
 
 The JSON configuration supports complex interdependent field logic: for example make textbox A required if checkbox B is checked, show textbox C if select element D is set to a certain option, etc.
 
