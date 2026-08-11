@@ -4,14 +4,108 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/stephenrwicks/wicks.css@main/wicks.css">
+    <script src="wc.js"></script>
 </head>
 
 <body>
-    <script src="form.js"></script>
-    <!-- <script src="demo.js"></script> -->
-   <!--  <script src="demo2.js"></script> -->
-    <script src="demo3.js"></script>
-    <!-- <script src="builder.js"></script> -->
+
+    <!-- <details name="accordion"> -->
+        <!-- <summary>Basic form</summary> -->
+        <logic-form id="test" action="https://postman-echo.com/post" method="POST" data-config='{
+  "title": "Form Control Showcase",
+  "fields": [
+    {
+      "type": "textbox",
+      "name": "fullName",
+      "label": "Full Name (textbox)",
+      "value": ""
+    },
+    {
+      "type": "textarea",
+      "name": "comments",
+      "label": "Comments (textarea)",
+      "value": "",
+      "placeholder": "placeholder"
+    },
+    {
+      "type": "checkbox",
+      "name": "newsletter",
+      "label": "Subscribe to newsletter (checkbox)",
+      "value": false
+    },
+    {
+      "type": "select",
+      "name": "branch",
+      "label": "Branch (select)",
+      "value": "",
+      "options": [
+        { "text": "Downtown", "value": "downtown" },
+        { "text": "West End", "value": "west" },
+        { "text": "University", "value": "university" }
+      ]
+    },
+    {
+      "type": "numerictextbox",
+      "name": "age",
+      "label": "Age (numerictextbox)",
+      "value": ""
+    },
+    {
+      "type": "integer",
+      "name": "householdSize",
+      "label": "Household Size (integer)",
+      "value": 1
+    },
+    {
+      "type": "decimal",
+      "name": "income",
+      "label": "Annual Income (decimal)",
+      "value": ""
+    },
+    {
+      "type": "checkboxgroup",
+      "name": "services",
+      "label": "Services (checkboxgroup)",
+      "value": [],
+      "options": [
+        { "text": "Computers", "value": "computers" },
+        { "text": "Printing", "value": "printing" },
+        { "text": "Research", "value": "research" }
+      ]
+    },
+    {
+      "type": "radiogroup",
+      "name": "membership",
+      "label": "Membership Type (radiogroup)",
+      "value": "resident",
+      "options": [
+        { "text": "Resident", "value": "resident" },
+        { "text": "Non-Resident", "value": "nonresident" },
+        { "text": "Institutional", "value": "institutional" }
+      ]
+    },
+    {
+      "type": "list",
+      "name": "favoriteBooks",
+      "label": "Favorite Books (list)",
+      "value": [],
+        "min": 4,
+        "max": 6
+    },
+        {
+      "type": "date",
+      "name": "when",
+      "label": "When? (date)"
+    }
+  ]
+}'></logic-form>
+    <!-- </details> -->
+
+
+
+
+    <script>const x = document.querySelector('#test');</script>
+
 </body>
 
 </html>
