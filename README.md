@@ -42,4 +42,4 @@ Basic API right now:
 * `saveState(name: string)`: Saves a snapshot of the current form state internally under the specified name.
 * `loadState(name: string)`: Restores the form state from a previously saved snapshot.
 * `setConfig(config)`: Rebuilds the form using a new configuration.
-
+ 
