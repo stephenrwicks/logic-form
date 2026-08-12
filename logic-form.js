@@ -157,7 +157,6 @@ class LogicForm extends HTMLElement {
             input = document.createElement('select');
             input.id = id;
             input.name = f.name;
-            input.add(new Option(f.placeholder || '-', '', false));
             const validValues = new Set(f.options.map(o => o.value));
             for (const option of f.options) {
                 if (!option.value?.trim()) {
@@ -177,10 +176,6 @@ class LogicForm extends HTMLElement {
             input = document.createElement('fieldset');
             input.id = id;
             const legend = document.createElement('legend');
-            const requiredSpan = document.createElement('span');
-            requiredSpan.textContent = ' *';
-            requiredSpan.style.color = 'red';
-            requiredSpan.ariaHidden = 'true';
             legend.replaceChildren(f.label.trim(), requiredSpan);
             input.append(legend);
             div.replaceChildren(input);
@@ -256,10 +251,6 @@ class LogicForm extends HTMLElement {
             input.id = id;
             input.style.position = 'relative';
             const legend = document.createElement('legend');
-            const requiredSpan = document.createElement('span');
-            requiredSpan.textContent = ' *';
-            requiredSpan.style.color = 'red';
-            requiredSpan.ariaHidden = 'true';
             legend.replaceChildren(f.label.trim(), requiredSpan);
             input.append(legend);
             div.replaceChildren(input);
@@ -303,10 +294,6 @@ class LogicForm extends HTMLElement {
             input = document.createElement('fieldset');
             input.id = id;
             const legend = document.createElement('legend');
-            const requiredSpan = document.createElement('span');
-            requiredSpan.textContent = ' *';
-            requiredSpan.style.color = 'red';
-            requiredSpan.ariaHidden = 'true';
             legend.replaceChildren(f.label.trim(), requiredSpan);
             input.append(legend);
             div.replaceChildren(input);
@@ -319,9 +306,9 @@ class LogicForm extends HTMLElement {
                 deleteButton.type = 'button';
                 deleteButton.title = 'Remove';
                 deleteButton.textContent = '×';
-                deleteButton.addEventListener('click', () => object.remove());
                 const itemInput = document.createElement('input');
                 itemInput.type = 'text';
+                itemInput.name = f.name;
                 itemInput.value = val.trim();
                 itemDiv.replaceChildren(itemInput, deleteButton);
                 const object = {
@@ -336,8 +323,10 @@ class LogicForm extends HTMLElement {
                         listItems.delete(object);
                         itemDiv.dispatchEvent(new Event('change', { bubbles: true }));
                         itemDiv.remove();
+                        deleteButton.removeEventListener('click', object.remove);
                     }
                 };
+                deleteButton.addEventListener('click', object.remove);
                 return object;
             };
             const addItemButton = document.createElement('button');
@@ -356,7 +345,7 @@ class LogicForm extends HTMLElement {
             const min = this.#isInteger(f.min) ? f.min : 1;
             const max = this.#isInteger(f.max) ? f.max : 20;
             getValue = () => {
-                const val = [...listItems].map(item => item.value).filter(Boolean);
+                const val = [...listItems].map(item => item.value?.trim()).filter(Boolean);
                 if (this.#isInteger(f.max))
                     return val.slice(0, f.max);
                 return val;
@@ -394,7 +383,10 @@ class LogicForm extends HTMLElement {
             input.type = 'date';
             input.id = id;
             div.replaceChildren(label, input);
-            setValue = () => {
+            getValue = () => {
+                return input.value;
+            };
+            setValue = (isoString) => {
             };
             setRequired = () => {
             };
@@ -410,6 +402,7 @@ class LogicForm extends HTMLElement {
         }
         input.addEventListener(eventToListenFor, () => {
             this.#fireRecursiveDependencyUpdate(f.name);
+            input.dispatchEvent(new CustomEvent('logic-form-update', { bubbles: true, detail: { input } }));
         });
         let _visible = true;
         let _disabled = false;
@@ -428,7 +421,7 @@ class LogicForm extends HTMLElement {
                 return getValue();
             },
             set value(val) {
-                setValue(val);
+                setValue(val ?? cl.#getEmptyValue(this));
                 cl.#fireRecursiveDependencyUpdate(f.name);
             },
             get visible() {
@@ -540,7 +533,6 @@ class LogicForm extends HTMLElement {
         }
     }
     #evaluateProperty(propertyVal, defaultValue) {
-        console.log('Evaluating.');
         if (typeof propertyVal === 'boolean')
             return propertyVal;
         if (Array.isArray(propertyVal))
@@ -549,6 +541,7 @@ class LogicForm extends HTMLElement {
     }
     ;
     #evaluateRule(rule) {
+        console.log('Evaluating a rule');
         if ('==' in rule) {
             const [left, right] = rule['=='];
             const side1 = this.#readRuleSide(left);
@@ -611,6 +604,12 @@ class LogicForm extends HTMLElement {
             this.setConfig(JSON.parse(this.dataset.config));
             this.removeAttribute('data-config');
         }
+        else if (this.#config) {
+            this.setConfig(this.#config);
+        }
+        else {
+            throw new Error('No config');
+        }
         for (const attr of ['action', 'enctype', 'method', 'novalidate', 'target', 'autocomplete']) {
             if (this.hasAttribute(attr)) {
                 const val = this.getAttribute(attr) ?? '';
@@ -639,6 +638,7 @@ class LogicForm extends HTMLElement {
         for (const key in val) {
             this.#fields[key].value = val[key];
         }
+        this.form.dispatchEvent(new CustomEvent('logic-form-update', { bubbles: true, detail: { input: 'value' } }));
     }
     getValue() {
         const result = {};
@@ -659,6 +659,7 @@ class LogicForm extends HTMLElement {
         for (const f of Object.values(this.#fields)) {
             f.value = this.#getEmptyValue(f);
         }
+        this.form.dispatchEvent(new CustomEvent('logic-form-update', { bubbles: true, detail: { input: 'clear' } }));
         return this.#valueGetterObject;
     }
     reset() {
@@ -666,6 +667,7 @@ class LogicForm extends HTMLElement {
         for (const fieldInternal of Object.values(this.#fields)) {
             fieldInternal.updateState();
         }
+        this.form.dispatchEvent(new CustomEvent('logic-form-update', { bubbles: true, detail: { input: 'reset' } }));
         return this.#valueGetterObject;
     }
     saveState(name) {
@@ -685,8 +687,9 @@ class LogicForm extends HTMLElement {
         this.form.replaceChildren();
         this.form.append(this.#titleEl);
         this.#titleEl.textContent = config.title?.trim() ?? '';
+        this.#fields = {};
         this.#valueGetterObject = Object.create(null);
-        for (const f of this.#config.fields) {
+        for (const f of config.fields ?? []) {
             const fieldInternal = this.#buildField(f);
             Object.defineProperty(this.#valueGetterObject, f.name, {
                 get() {
@@ -702,6 +705,7 @@ class LogicForm extends HTMLElement {
         for (const fieldInternal of Object.values(this.#fields)) {
             fieldInternal.updateState();
         }
+        this.form.dispatchEvent(new CustomEvent('logic-form-update', { bubbles: true, detail: { input: 'setConfig' } }));
         this.form.append(this.#buttonRow);
     }
 }

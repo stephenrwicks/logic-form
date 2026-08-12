@@ -2,23 +2,23 @@
 <html>
 
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/stephenrwicks/wicks.css@main/wicks.css">
-    <script src="wc.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/stephenrwicks/wicks.css@main/wicks.css">
+  <script src="logic-form.js"></script>
+
 </head>
 
 <body>
 
-    <!-- <details name="accordion"> -->
-        <!-- <summary>Basic form</summary> -->
-        <logic-form id="test" action="https://postman-echo.com/post" method="POST" data-config='{
+  <!-- <logic-form id="x" action="https://postman-echo.com/post" method="POST" data-config='{
   "title": "Form Control Showcase",
   "fields": [
     {
       "type": "textbox",
       "name": "fullName",
       "label": "Full Name (textbox)",
-      "value": ""
+      "value": "",
+              "required": true
     },
     {
       "type": "textarea",
@@ -54,13 +54,15 @@
       "type": "integer",
       "name": "householdSize",
       "label": "Household Size (integer)",
-      "value": 1
+      "value": 1,
+              "required": "true"
     },
     {
       "type": "decimal",
       "name": "income",
       "label": "Annual Income (decimal)",
-      "value": ""
+      "value": "",
+              "required": "true"
     },
     {
       "type": "checkboxgroup",
@@ -71,7 +73,8 @@
         { "text": "Computers", "value": "computers" },
         { "text": "Printing", "value": "printing" },
         { "text": "Research", "value": "research" }
-      ]
+      ],
+              "required": true
     },
     {
       "type": "radiogroup",
@@ -82,7 +85,8 @@
         { "text": "Resident", "value": "resident" },
         { "text": "Non-Resident", "value": "nonresident" },
         { "text": "Institutional", "value": "institutional" }
-      ]
+      ],
+              "required": true
     },
     {
       "type": "list",
@@ -90,7 +94,8 @@
       "label": "Favorite Books (list)",
       "value": [],
         "min": 4,
-        "max": 6
+        "max": 6,
+        "required": true
     },
         {
       "type": "date",
@@ -98,14 +103,15 @@
       "label": "When? (date)"
     }
   ]
-}'></logic-form>
-    <!-- </details> -->
+}'></logic-form> -->
 
 
+  <pre id="pre"></pre>
 
 
-    <script>const x = document.querySelector('#test');</script>
-
+  <!-- <script>const x = document.querySelector('#x');</script> -->
+  <script src="formbuilderconfigs.js"></script>
+  <script src="formbuilder.js"></script>
 </body>
 
 </html>
