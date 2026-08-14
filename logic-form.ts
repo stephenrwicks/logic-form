@@ -50,6 +50,18 @@ class LogicForm extends HTMLElement {
         return array1.length === array2.length && array1.every((item, i) => item === array2[i]);
     }
 
+    #fixMinMax = (f: Field) => {
+        if (!(f.type === 'integer' || f.type === 'decimal' || f.type === 'list' || f.type === 'checkboxgroup')) return;
+        if (this.#isNumeric(f.min) && this.#isNumeric(f.max)) {
+            if (f.min > f.max) f.min = f.max;
+        }
+        if (f.type !== 'decimal' && this.#isNumeric(f.min)) f.min = Math.floor(f.min);
+        if (f.type !== 'decimal' && this.#isNumeric(f.max)) f.max = Math.floor(f.max);
+        if (this.#isNumeric(f.min) && f.min < 0) f.min = 0; 
+        if (this.#isNumeric(f.max) && f.max < 1) f.max = 1; 
+    
+    };
+
     #buildField(f: Field) {
         if (f.name in this.#fields) throw new Error(`"${f.name}" exists in the config twice. Can't have two fields named the same.`)
         const id = `_${f.type}_${crypto.randomUUID()}`;
@@ -70,6 +82,9 @@ class LogicForm extends HTMLElement {
         let setValue: (val: any) => void;
         let setRequired: (bool: boolean) => void;
         let eventToListenFor: 'change' | 'input' = 'change';
+
+        this.#fixMinMax(f);
+        // minlength maxlength
 
         if (f.type === 'textbox' || f.type === 'textarea' || f.type === 'numerictextbox') {
             eventToListenFor = 'input'
@@ -218,9 +233,7 @@ class LogicForm extends HTMLElement {
             input.append(legend);
             div.replaceChildren(input);
 
-            const hasMin = this.#isNumeric(f.min);
-            const hasMax = this.#isNumeric(f.max);
-            if (hasMin && hasMax && f.min! > f.max!) {
+            if (this.#isInteger(f.min) && this.#isInteger(f.max) && f.min! > f.max!) {
                 f.max = f.min;
             }
             const checkboxes = f.options.map(o => {
