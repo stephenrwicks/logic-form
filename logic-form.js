@@ -2,7 +2,6 @@
 class LogicForm extends HTMLElement {
     #config;
     #fields = {};
-    #watchers = {};
     #states = {};
     #metaKeys = new Set(['a', 'c', 'v', 'x']);
     #integerAllowedKeys = new Set([
@@ -35,7 +34,7 @@ class LogicForm extends HTMLElement {
         array2 = [...new Set(array2)].toSorted();
         return array1.length === array2.length && array1.every((item, i) => item === array2[i]);
     }
-    #fixMinMax = (f) => {
+    #fixMinMax(f) {
         if (!(f.type === 'integer' || f.type === 'decimal' || f.type === 'list' || f.type === 'checkboxgroup'))
             return;
         if (this.#isNumeric(f.min) && this.#isNumeric(f.max)) {
@@ -50,7 +49,8 @@ class LogicForm extends HTMLElement {
             f.min = 0;
         if (this.#isNumeric(f.max) && f.max < 1)
             f.max = 1;
-    };
+    }
+    ;
     #buildField(f) {
         if (f.name in this.#fields)
             throw new Error(`"${f.name}" exists in the config twice. Can't have two fields named the same.`);
@@ -90,7 +90,9 @@ class LogicForm extends HTMLElement {
                 input.minLength = f.minLength;
             div.replaceChildren(label, input);
             getValue = () => input.value.trim();
-            setValue = (val) => input.value = typeof val === 'string' ? val.trim() : '';
+            setValue = (val) => {
+                input.value = typeof val === 'string' ? val.trim() : '';
+            };
             const whiteSpaceBlocker = () => input.setCustomValidity(!!getValue() ? '' : 'This field is required.');
             setRequired = (bool) => {
                 input.required = !!bool;
@@ -98,6 +100,19 @@ class LogicForm extends HTMLElement {
                 if (!!bool)
                     input.addEventListener('input', whiteSpaceBlocker);
             };
+            if (f.type === 'numerictextbox') {
+                input.inputMode = 'numeric';
+                input.addEventListener('input', (e) => {
+                    const data = e.data;
+                    if (!data)
+                        return;
+                });
+                input.addEventListener('keydown', (e) => {
+                    if (this.#integerAllowedKeys.has(e.key))
+                        return;
+                    e.preventDefault();
+                });
+            }
         }
         else if (f.type === 'checkbox') {
             input = document.createElement('input');
@@ -306,6 +321,7 @@ class LogicForm extends HTMLElement {
             updateClearButtonVisibility();
         }
         else if (f.type === 'list') {
+            ;
             input = document.createElement('fieldset');
             input.id = id;
             const legend = document.createElement('legend');
@@ -313,17 +329,21 @@ class LogicForm extends HTMLElement {
             input.append(legend);
             div.replaceChildren(input);
             const listItems = new Set();
+            const hiddenInputDiv = document.createElement('div');
+            hiddenInputDiv.style.display = 'none';
             const buildItem = (val = '') => {
                 const itemDiv = document.createElement('div');
                 itemDiv.style.display = 'flex';
-                itemDiv.style.marginBottom = '.25rem';
+                itemDiv.style.margin = '0px .5rem .25rem .5rem';
                 const deleteButton = document.createElement('button');
                 deleteButton.type = 'button';
                 deleteButton.title = 'Remove';
                 deleteButton.textContent = '×';
+                deleteButton.style.minWidth = '2rem';
+                deleteButton.style.width = '2rem';
                 const itemInput = document.createElement('input');
                 itemInput.type = 'text';
-                itemInput.name = f.name;
+                itemInput.addEventListener('input', () => itemInput.name = object.value ? f.name : '');
                 itemInput.value = val.trim();
                 itemDiv.replaceChildren(itemInput, deleteButton);
                 const object = {
@@ -409,14 +429,8 @@ class LogicForm extends HTMLElement {
         else {
             throw new Error(`field "${f.name}" type invalid`);
         }
-        for (const fieldName of this.#getFieldNamesToWatch(f)) {
-            if (!(this.#watchers[fieldName] instanceof Set)) {
-                this.#watchers[fieldName] = new Set();
-            }
-            this.#watchers[fieldName].add(f.name);
-        }
         input.addEventListener(eventToListenFor, () => {
-            this.#fireRecursiveDependencyUpdate(f.name);
+            this.#update();
             input.dispatchEvent(new CustomEvent('logic-form-update', { bubbles: true, detail: { input } }));
         });
         let _visible = true;
@@ -437,7 +451,7 @@ class LogicForm extends HTMLElement {
             },
             set value(val) {
                 setValue(val ?? cl.#getEmptyValue(this));
-                cl.#fireRecursiveDependencyUpdate(f.name);
+                cl.#update();
             },
             get visible() {
                 return _visible;
@@ -473,79 +487,39 @@ class LogicForm extends HTMLElement {
     #getEmptyValue(f) {
         if (f.type === 'checkbox')
             return false;
-        if (f.type === 'checkboxgroup')
+        if (f.type === 'checkboxgroup' || f.type === 'list')
             return [];
-        if (f.type === 'list') {
-            return [];
-        }
         return '';
     }
-    #getFieldNamesToWatch(field) {
-        const resultSet = new Set();
-        const collectVars = (rule) => {
-            if ('==' in rule) {
-                for (const item of rule['=='])
-                    if (this.#isVarRef(item))
-                        resultSet.add(item.var);
-            }
-            else if ('!=' in rule) {
-                for (const item of rule['!='])
-                    if (this.#isVarRef(item))
-                        resultSet.add(item.var);
-            }
-            else if ('>' in rule) {
-                for (const item of rule['>'])
-                    if (this.#isVarRef(item))
-                        resultSet.add(item.var);
-            }
-            else if ('<' in rule) {
-                for (const item of rule['<'])
-                    if (this.#isVarRef(item))
-                        resultSet.add(item.var);
-            }
-            else if ('>=' in rule) {
-                for (const item of rule['>='])
-                    if (this.#isVarRef(item))
-                        resultSet.add(item.var);
-            }
-            else if ('<=' in rule) {
-                for (const item of rule['<='])
-                    if (this.#isVarRef(item))
-                        resultSet.add(item.var);
-            }
-            else if ('not' in rule) {
-                collectVars(rule.not);
-            }
-            else if ('and' in rule) {
-                for (const r of rule.and)
-                    collectVars(r);
-            }
-            else if ('or' in rule) {
-                for (const r of rule.or)
-                    collectVars(r);
-            }
-        };
-        const collectAllVarNames = (rules) => {
-            if (!Array.isArray(rules))
-                return;
-            for (const r of rules) {
-                collectVars(r);
-            }
-        };
-        collectAllVarNames(field.visible);
-        collectAllVarNames(field.required);
-        collectAllVarNames(field.disabled);
-        return resultSet;
-    }
-    #fireRecursiveDependencyUpdate(fieldName) {
-        if (!(this.#watchers[fieldName] instanceof Set))
+    #updatePasses = 0;
+    #update() {
+        const oldSnapshot = this.getValue();
+        for (const f of Object.values(this.#fields)) {
+            f.updateState();
+        }
+        const newSnapshot = this.getValue();
+        const isStable = this.#isSnapshotEqual(oldSnapshot, newSnapshot);
+        this.#updatePasses += 1;
+        if (isStable || this.#updatePasses >= 10) {
+            console.log(`Updated the form state in ${this.#updatePasses} passes.`);
+            this.#updatePasses = 0;
             return;
-        for (const watcherName of this.#watchers[fieldName]) {
-            this.#fields[watcherName].updateState();
-            if (this.#watchers[watcherName] instanceof Set) {
-                this.#fireRecursiveDependencyUpdate(watcherName);
+        }
+        this.#update();
+    }
+    #isSnapshotEqual(oldSnapshot, newSnapshot) {
+        if (Object.keys(oldSnapshot).length !== Object.keys(newSnapshot).length)
+            return false;
+        for (const key in oldSnapshot) {
+            if (Array.isArray(oldSnapshot[key]) && Array.isArray(newSnapshot[key])) {
+                if (!this.#isFlatStringArrayEqual(oldSnapshot[key], newSnapshot[key]))
+                    return false;
+            }
+            else if (oldSnapshot[key] !== newSnapshot[key]) {
+                return false;
             }
         }
+        return true;
     }
     #evaluateProperty(propertyVal, defaultValue) {
         if (typeof propertyVal === 'boolean')
@@ -556,7 +530,6 @@ class LogicForm extends HTMLElement {
     }
     ;
     #evaluateRule(rule) {
-        console.log('Evaluating a rule');
         if ('==' in rule) {
             const [left, right] = rule['=='];
             const side1 = this.#readRuleSide(left);
@@ -649,12 +622,6 @@ class LogicForm extends HTMLElement {
     get value() {
         return this.#valueGetterObject;
     }
-    set value(val) {
-        for (const key in val) {
-            this.#fields[key].value = val[key];
-        }
-        this.form.dispatchEvent(new CustomEvent('logic-form-update', { bubbles: true, detail: { input: 'value' } }));
-    }
     getValue() {
         const result = {};
         for (const f of Object.values(this.#fields)) {
@@ -663,6 +630,23 @@ class LogicForm extends HTMLElement {
             result[f.name] = f.value;
         }
         return result;
+    }
+    setValue(val) {
+        for (const key in this.#fields) {
+            if (key in val) {
+                this.#fields[key].value = val[key];
+            }
+            else {
+                this.#fields[key].value = this.#getEmptyValue(this.#fields[key]);
+            }
+        }
+        this.form.dispatchEvent(new CustomEvent('logic-form-update', { bubbles: true, detail: { input: 'setValue' } }));
+    }
+    mergeValue(val) {
+        for (const key in val) {
+            this.#fields[key].value = val[key];
+        }
+        this.form.dispatchEvent(new CustomEvent('logic-form-update', { bubbles: true, detail: { input: 'mergeValue' } }));
     }
     getJson() {
         return JSON.stringify(this.#valueGetterObject);
@@ -694,7 +678,7 @@ class LogicForm extends HTMLElement {
         const value = this.#states[name];
         if (!value)
             return;
-        this.value = value;
+        this.setValue(value);
         return structuredClone(value);
     }
     setConfig(config) {

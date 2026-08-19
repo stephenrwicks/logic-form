@@ -1,6 +1,6 @@
 # logic-form
 
-**Work in progress — April / August 2026**
+**Work in progress — March / April / August 2026**
 
 This is a small form framework built in a native Web Component. It generates a plain HTML form from a JSON configuration. The Web Component `<logic-form>` is just a thin wrapper around a real `<form>` which is rendered in the light DOM (no shadow DOM is used).
 
@@ -51,6 +51,8 @@ Currently `"required"`, `"disabled"`, and `"visible"` are eligible for rules.
 
 ### Methods
 
+* `setValue()`: Pass in an object. Sets value of all form fields. Clears keys that aren't present
+* `mergeValue()`: Pass in an object. Sets value of keys passed in.
 * `getValue()`: Returns a fresh copy of all visible, enabled field values.
 * `getJson()`: Returns the current values as JSON.
 * `getFormData()`: Returns a native `FormData` object.

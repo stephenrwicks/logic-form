@@ -105,13 +105,972 @@
   ]
 }'></logic-form> -->
 
+<logic-form
+  id="x"
+  action="https://postman-echo.com/post"
+  method="POST"
+  data-config='{
+  "title": "Library Community Event Signup",
+  "fields": [
+    {
+      "type": "select",
+      "name": "audienceType",
+      "label": "Who is this event registration for?",
+      "value": "",
+      "options": [
+        { "text": "Adult", "value": "adult" },
+        { "text": "Teen", "value": "teen" },
+        { "text": "Child", "value": "child" },
+        { "text": "Family / Group", "value": "family" }
+      ],
+      "placeholder": "Select an audience",
+      "required": true
+    },
+    {
+      "type": "select",
+      "name": "branch",
+      "label": "Preferred Library Branch",
+      "value": "",
+      "options": [
+        { "text": "Downtown", "value": "downtown" },
+        { "text": "West End", "value": "west" },
+        { "text": "University", "value": "university" }
+      ],
+      "placeholder": "Select a branch",
+      "required": true
+    },
+    {
+      "type": "textbox",
+      "name": "adultFullName",
+      "label": "Full Name",
+      "value": "",
+      "placeholder": "Enter your full name",
+      "visible": [
+        { "==": [{ "var": "audienceType" }, "adult"] }
+      ],
+      "required": [
+        { "==": [{ "var": "audienceType" }, "adult"] }
+      ]
+    },
+    {
+      "type": "numerictextbox",
+      "name": "adultAge",
+      "label": "Age",
+      "value": "",
+      "visible": [
+        { "==": [{ "var": "audienceType" }, "adult"] }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "adult"] },
+            { ">=": [{ "var": "adultAge" }, 18] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "checkbox",
+      "name": "adultBookClub",
+      "label": "I want to participate in the Mystery Book Club",
+      "value": false,
+      "visible": [
+        { "==": [{ "var": "audienceType" }, "adult"] }
+      ]
+    },
+    {
+      "type": "select",
+      "name": "adultFavoriteAuthor",
+      "label": "Favorite Mystery Author",
+      "value": "",
+      "options": [
+        { "text": "Agatha Christie", "value": "agatha" },
+        { "text": "Arthur Conan Doyle", "value": "doyle" },
+        { "text": "Gillian Flynn", "value": "flynn" },
+        { "text": "Tana French", "value": "french" }
+      ],
+      "placeholder": "Select an author",
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "adult"] },
+            { "==": [{ "var": "adultBookClub" }, true] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "adult"] },
+            { "==": [{ "var": "adultBookClub" }, true] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "checkbox",
+      "name": "adultEveningEvents",
+      "label": "I prefer evening events",
+      "value": false,
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "adult"] },
+            { ">=": [{ "var": "adultAge" }, 18] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "textarea",
+      "name": "adultAccessibility",
+      "label": "Accessibility or accommodation needs",
+      "value": "",
+      "placeholder": "Tell us about any accommodations you may need",
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "adult"] },
+            { "==": [{ "var": "adultEveningEvents" }, true] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "adult"] },
+            { "==": [{ "var": "adultEveningEvents" }, true] },
+            { "==": [{ "var": "branch" }, "downtown"] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "textbox",
+      "name": "teenFullName",
+      "label": "Teen Full Name",
+      "value": "",
+      "placeholder": "Enter teen&#39;s full name",
+      "visible": [
+        { "==": [{ "var": "audienceType" }, "teen"] }
+      ],
+      "required": [
+        { "==": [{ "var": "audienceType" }, "teen"] }
+      ]
+    },
+    {
+      "type": "numerictextbox",
+      "name": "teenAge",
+      "label": "Age",
+      "value": "",
+      "visible": [
+        { "==": [{ "var": "audienceType" }, "teen"] }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "teen"] },
+            { ">=": [{ "var": "teenAge" }, 13] },
+            { "<=": [{ "var": "teenAge" }, 17] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "name": "teenEvent",
+      "label": "Teen Event",
+      "value": "",
+      "options": [
+        { "text": "Game Night", "value": "games" },
+        { "text": "Anime Club", "value": "anime" },
+        { "text": "Teen Book Club", "value": "bookclub" },
+        { "text": "Coding Workshop", "value": "coding" }
+      ],
+      "placeholder": "Select an event",
+      "visible": [
+        { "==": [{ "var": "audienceType" }, "teen"] }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "teen"] },
+            { ">=": [{ "var": "teenAge" }, 13] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "name": "teenGame",
+      "label": "Which game would you like to play?",
+      "value": "",
+      "options": [
+        { "text": "Chess", "value": "chess" },
+        { "text": "Trivia", "value": "trivia" },
+        { "text": "Mario Kart", "value": "mariokart" },
+        { "text": "Board Games", "value": "boardgames" }
+      ],
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "teen"] },
+            { "==": [{ "var": "teenEvent" }, "games"] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "teen"] },
+            { "==": [{ "var": "teenEvent" }, "games"] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "checkbox",
+      "name": "teenChessExperience",
+      "label": "I already know how to play chess",
+      "value": false,
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "teen"] },
+            { "==": [{ "var": "teenEvent" }, "games"] },
+            { "==": [{ "var": "teenGame" }, "chess"] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "textbox",
+      "name": "teenTriviaTeam",
+      "label": "Trivia Team Name",
+      "value": "",
+      "placeholder": "Enter a team name",
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "teen"] },
+            { "==": [{ "var": "teenEvent" }, "games"] },
+            { "==": [{ "var": "teenGame" }, "trivia"] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "teen"] },
+            { "==": [{ "var": "teenEvent" }, "games"] },
+            { "==": [{ "var": "teenGame" }, "trivia"] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "checkboxgroup",
+      "name": "teenAnimeInterests",
+      "label": "Anime Interests",
+      "value": [],
+      "options": [
+        { "text": "Action", "value": "action" },
+        { "text": "Fantasy", "value": "fantasy" },
+        { "text": "Comedy", "value": "comedy" },
+        { "text": "Romance", "value": "romance" },
+        { "text": "Sci-Fi", "value": "scifi" }
+      ],
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "teen"] },
+            { "==": [{ "var": "teenEvent" }, "anime"] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "teen"] },
+            { "==": [{ "var": "teenEvent" }, "anime"] },
+            { ">": [{ "var": "teenAge" }, 14] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "name": "teenCodingLevel",
+      "label": "Coding Experience",
+      "value": "",
+      "options": [
+        { "text": "None", "value": "none" },
+        { "text": "Beginner", "value": "beginner" },
+        { "text": "Intermediate", "value": "intermediate" },
+        { "text": "Advanced", "value": "advanced" }
+      ],
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "teen"] },
+            { "==": [{ "var": "teenEvent" }, "coding"] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "teen"] },
+            { "==": [{ "var": "teenEvent" }, "coding"] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "textarea",
+      "name": "teenCodingProject",
+      "label": "What would you like to build?",
+      "value": "",
+      "placeholder": "Describe a project or idea",
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "teen"] },
+            { "==": [{ "var": "teenEvent" }, "coding"] },
+            {
+              "or": [
+                { "==": [{ "var": "teenCodingLevel" }, "beginner"] },
+                { "==": [{ "var": "teenCodingLevel" }, "intermediate"] },
+                { "==": [{ "var": "teenCodingLevel" }, "advanced"] }
+              ]
+            }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "teen"] },
+            { "==": [{ "var": "teenEvent" }, "coding"] },
+            { "!=": [{ "var": "teenCodingLevel" }, "none"] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "textbox",
+      "name": "childFullName",
+      "label": "Child&#39;s Full Name",
+      "value": "",
+      "placeholder": "Enter child&#39;s full name",
+      "visible": [
+        { "==": [{ "var": "audienceType" }, "child"] }
+      ],
+      "required": [
+        { "==": [{ "var": "audienceType" }, "child"] }
+      ]
+    },
+    {
+      "type": "numerictextbox",
+      "name": "childAge",
+      "label": "Child&#39;s Age",
+      "value": "",
+      "visible": [
+        { "==": [{ "var": "audienceType" }, "child"] }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "child"] },
+            { ">=": [{ "var": "childAge" }, 5] },
+            { "<=": [{ "var": "childAge" }, 12] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "textbox",
+      "name": "guardianName",
+      "label": "Parent/Guardian Name",
+      "value": "",
+      "placeholder": "Enter parent or guardian name",
+      "visible": [
+        { "==": [{ "var": "audienceType" }, "child"] }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "child"] },
+            { "!=": [{ "var": "childFullName" }, ""] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "textbox",
+      "name": "guardianEmail",
+      "label": "Parent/Guardian Email",
+      "value": "",
+      "placeholder": "Enter email address",
+      "visible": [
+        { "==": [{ "var": "audienceType" }, "child"] }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "child"] },
+            { ">=": [{ "var": "childAge" }, 8] },
+            { "!=": [{ "var": "guardianName" }, ""] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "name": "childProgram",
+      "label": "Children&#39;s Program",
+      "value": "",
+      "options": [
+        { "text": "Story Time", "value": "storytime" },
+        { "text": "STEAM Club", "value": "steam" },
+        { "text": "Craft Workshop", "value": "crafts" },
+        { "text": "Lego Club", "value": "lego" }
+      ],
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "child"] },
+            { ">=": [{ "var": "childAge" }, 5] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "child"] },
+            { ">=": [{ "var": "childAge" }, 5] },
+            { "<=": [{ "var": "childAge" }, 12] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "checkbox",
+      "name": "childNeedsHelp",
+      "label": "My child may need additional assistance",
+      "value": false,
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "child"] },
+            { "<": [{ "var": "childAge" }, 9] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "textarea",
+      "name": "childAssistanceDetails",
+      "label": "Please describe the assistance needed",
+      "value": "",
+      "placeholder": "Provide relevant details",
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "child"] },
+            { "==": [{ "var": "childNeedsHelp" }, true] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "child"] },
+            { "==": [{ "var": "childNeedsHelp" }, true] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "textbox",
+      "name": "familyContactName",
+      "label": "Primary Contact Name",
+      "value": "",
+      "placeholder": "Enter primary contact name",
+      "visible": [
+        { "==": [{ "var": "audienceType" }, "family"] }
+      ],
+      "required": [
+        { "==": [{ "var": "audienceType" }, "family"] }
+      ]
+    },
+    {
+      "type": "integer",
+      "name": "familyAdults",
+      "label": "Number of Adults",
+      "value": 1,
+      "visible": [
+        { "==": [{ "var": "audienceType" }, "family"] }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "family"] },
+            { ">": [{ "var": "familyAdults" }, 0] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "integer",
+      "name": "familyChildren",
+      "label": "Number of Children",
+      "value": 0,
+      "visible": [
+        { "==": [{ "var": "audienceType" }, "family"] }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "family"] },
+            { ">=": [{ "var": "familyChildren" }, 0] },
+            { "<=": [{ "var": "familyChildren" }, 10] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "checkboxgroup",
+      "name": "familyInterests",
+      "label": "Family Program Interests",
+      "value": [],
+      "options": [
+        { "text": "Story Time", "value": "storytime" },
+        { "text": "Crafts", "value": "crafts" },
+        { "text": "Science", "value": "science" },
+        { "text": "Music", "value": "music" },
+        { "text": "Games", "value": "games" }
+      ],
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "family"] },
+            { ">": [{ "var": "familyChildren" }, 0] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "family"] },
+            { ">": [{ "var": "familyChildren" }, 0] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "name": "familyAgeRange",
+      "label": "Primary Children&#39;s Age Range",
+      "value": "",
+      "options": [
+        { "text": "0-3", "value": "0-3" },
+        { "text": "4-6", "value": "4-6" },
+        { "text": "7-9", "value": "7-9" },
+        { "text": "10-12", "value": "10-12" },
+        { "text": "13-17", "value": "13-17" }
+      ],
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "family"] },
+            { ">": [{ "var": "familyChildren" }, 0] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "audienceType" }, "family"] },
+            { ">": [{ "var": "familyChildren" }, 0] },
+            { ">": [{ "var": "familyAdults" }, 0] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "checkbox",
+      "name": "virtualAttendance",
+      "label": "I would prefer to attend virtually",
+      "value": false,
+      "visible": [
+        {
+          "or": [
+            { "==": [{ "var": "audienceType" }, "adult"] },
+            { "==": [{ "var": "audienceType" }, "teen"] },
+            { "==": [{ "var": "audienceType" }, "family"] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "textbox",
+      "name": "virtualEmail",
+      "label": "Email for Virtual Event Information",
+      "value": "",
+      "placeholder": "Enter email address",
+      "visible": [
+        {
+          "and": [
+            {
+              "or": [
+                { "==": [{ "var": "audienceType" }, "adult"] },
+                { "==": [{ "var": "audienceType" }, "teen"] },
+                { "==": [{ "var": "audienceType" }, "family"] }
+              ]
+            },
+            { "==": [{ "var": "virtualAttendance" }, true] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            {
+              "or": [
+                { "==": [{ "var": "audienceType" }, "adult"] },
+                { "==": [{ "var": "audienceType" }, "teen"] },
+                { "==": [{ "var": "audienceType" }, "family"] }
+              ]
+            },
+            { "==": [{ "var": "virtualAttendance" }, true] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "checkbox",
+      "name": "accessibilityNeeds",
+      "label": "I need an accessibility accommodation",
+      "value": false,
+      "required": [
+        {
+          "or": [
+            { "==": [{ "var": "audienceType" }, "adult"] },
+            { "==": [{ "var": "audienceType" }, "teen"] },
+            { "==": [{ "var": "audienceType" }, "child"] },
+            { "==": [{ "var": "audienceType" }, "family"] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "checkboxgroup",
+      "name": "accessibilityServices",
+      "label": "Accessibility Services",
+      "value": [],
+      "options": [
+        { "text": "Wheelchair-accessible seating", "value": "wheelchair" },
+        { "text": "Large-print materials", "value": "largeprint" },
+        { "text": "Hearing assistance", "value": "hearing" },
+        { "text": "Visual assistance", "value": "visual" },
+        { "text": "Other", "value": "other" }
+      ],
+      "visible": [
+        { "==": [{ "var": "accessibilityNeeds" }, true] }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "accessibilityNeeds" }, true] },
+            {
+              "or": [
+                { "==": [{ "var": "audienceType" }, "adult"] },
+                { "==": [{ "var": "audienceType" }, "teen"] },
+                { "==": [{ "var": "audienceType" }, "child"] },
+                { "==": [{ "var": "audienceType" }, "family"] }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "textarea",
+      "name": "accessibilityDetails",
+      "label": "Additional Accommodation Details",
+      "value": "",
+      "placeholder": "Describe any additional accommodation needs",
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "accessibilityNeeds" }, true] },
+            {
+              "in": [
+                "other",
+                { "var": "accessibilityServices" }
+              ]
+            }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "accessibilityNeeds" }, true] },
+            {
+              "in": [
+                "other",
+                { "var": "accessibilityServices" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "date",
+      "name": "eventDate",
+      "label": "Preferred Event Date",
+      "visible": [
+        {
+          "or": [
+            { "==": [{ "var": "audienceType" }, "adult"] },
+            { "==": [{ "var": "audienceType" }, "teen"] },
+            { "==": [{ "var": "audienceType" }, "child"] },
+            { "==": [{ "var": "audienceType" }, "family"] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            {
+              "or": [
+                { "==": [{ "var": "audienceType" }, "adult"] },
+                { "==": [{ "var": "audienceType" }, "teen"] },
+                { "==": [{ "var": "audienceType" }, "family"] }
+              ]
+            },
+            { "!=": [{ "var": "branch" }, ""] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "checkbox",
+      "name": "newsletter",
+      "label": "Subscribe to the library newsletter",
+      "value": false
+    },
+    {
+      "type": "checkbox",
+      "name": "volunteer",
+      "label": "I am interested in volunteering at future library events",
+      "value": false,
+      "visible": [
+        {
+          "or": [
+            { "==": [{ "var": "audienceType" }, "adult"] },
+            { "==": [{ "var": "audienceType" }, "family"] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "checkboxgroup",
+      "name": "volunteerAreas",
+      "label": "Volunteer Areas",
+      "value": [],
+      "options": [
+        { "text": "Event Setup", "value": "setup" },
+        { "text": "Children&#39;s Programs", "value": "children" },
+        { "text": "Technology Help", "value": "technology" },
+        { "text": "Book Programs", "value": "books" },
+        { "text": "Community Outreach", "value": "outreach" }
+      ],
+      "visible": [
+        {
+          "and": [
+            {
+              "or": [
+                { "==": [{ "var": "audienceType" }, "adult"] },
+                { "==": [{ "var": "audienceType" }, "family"] }
+              ]
+            },
+            { "==": [{ "var": "volunteer" }, true] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "volunteer" }, true] },
+            {
+              "or": [
+                { "==": [{ "var": "audienceType" }, "adult"] },
+                { "==": [{ "var": "audienceType" }, "family"] }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "textarea",
+      "name": "additionalComments",
+      "label": "Additional Comments or Questions",
+      "value": "",
+      "placeholder": "Tell us anything else we should know",
+      "visible": [
+        {
+          "or": [
+            {
+              "and": [
+                { "==": [{ "var": "audienceType" }, "adult"] },
+                { "==": [{ "var": "adultBookClub" }, true] }
+              ]
+            },
+            {
+              "and": [
+                { "==": [{ "var": "audienceType" }, "teen"] },
+                { "==": [{ "var": "teenEvent" }, "coding"] }
+              ]
+            },
+            {
+              "and": [
+                { "==": [{ "var": "audienceType" }, "child"] },
+                { "==": [{ "var": "childNeedsHelp" }, true] }
+              ]
+            },
+            {
+              "and": [
+                { "==": [{ "var": "audienceType" }, "family"] },
+                { ">": [{ "var": "familyChildren" }, 2] }
+              ]
+            }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "or": [
+            {
+              "and": [
+                { "==": [{ "var": "audienceType" }, "adult"] },
+                { "==": [{ "var": "adultBookClub" }, true] },
+                { "==": [{ "var": "branch" }, "downtown"] }
+              ]
+            },
+            {
+              "and": [
+                { "==": [{ "var": "audienceType" }, "teen"] },
+                { "==": [{ "var": "teenEvent" }, "coding"] },
+                { "==": [{ "var": "teenCodingLevel" }, "advanced"] }
+              ]
+            },
+            {
+              "and": [
+                { "==": [{ "var": "audienceType" }, "child"] },
+                { "==": [{ "var": "childNeedsHelp" }, true] }
+              ]
+            },
+            {
+              "and": [
+                { "==": [{ "var": "audienceType" }, "family"] },
+                { ">": [{ "var": "familyChildren" }, 2] },
+                { "==": [{ "var": "branch" }, "downtown"] }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}'></logic-form>
 
-  <pre id="pre"></pre>
+<logic-form
+  id="stability-test"
+  action="https://postman-echo.com/post"
+  method="POST"
+  data-config='{
+  "title": "Eight-Pass Stability Test",
+  "fields": [
+    {
+      "type": "textbox",
+      "name": "fieldA",
+      "label": "Field A",
+      "value": "show"
+    },
+    {
+      "type": "textbox",
+      "name": "fieldH",
+      "label": "Field H",
+      "value": "H",
+      "visible": [
+        { "!=": [{ "var": "fieldG" }, ""] }
+      ]
+    },
+    {
+      "type": "textbox",
+      "name": "fieldG",
+      "label": "Field G",
+      "value": "G",
+      "visible": [
+        { "!=": [{ "var": "fieldF" }, ""] }
+      ]
+    },
+    {
+      "type": "textbox",
+      "name": "fieldF",
+      "label": "Field F",
+      "value": "F",
+      "visible": [
+        { "!=": [{ "var": "fieldE" }, ""] }
+      ]
+    },
+    {
+      "type": "textbox",
+      "name": "fieldE",
+      "label": "Field E",
+      "value": "E",
+      "visible": [
+        { "!=": [{ "var": "fieldD" }, ""] }
+      ]
+    },
+    {
+      "type": "textbox",
+      "name": "fieldD",
+      "label": "Field D",
+      "value": "D",
+      "visible": [
+        { "!=": [{ "var": "fieldC" }, ""] }
+      ]
+    },
+    {
+      "type": "textbox",
+      "name": "fieldC",
+      "label": "Field C",
+      "value": "C",
+      "visible": [
+        { "!=": [{ "var": "fieldB" }, ""] }
+      ]
+    },
+    {
+      "type": "textbox",
+      "name": "fieldB",
+      "label": "Field B",
+      "value": "B",
+      "visible": [
+        { "==": [{ "var": "fieldA" }, "show"] }
+      ]
+    }
+  ]
+}'></logic-form>
 
-
-  <!-- <script>const x = document.querySelector('#x');</script> -->
-  <script src="formbuilderconfigs.js"></script>
-  <script src="formbuilder.js"></script>
+  <script>const x = document.querySelector('#x');</script>
+  <!-- <script src="demos/formbuilderconfigs.js"></script>
+  <script src="demos/formbuilder.js"></script> -->
 </body>
 
 </html>
