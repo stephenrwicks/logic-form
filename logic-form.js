@@ -2,7 +2,7 @@
 class LogicForm extends HTMLElement {
     #config;
     #fields = {};
-    #states = {};
+    #snapshots = {};
     #metaKeys = new Set(['a', 'c', 'v', 'x']);
     #integerAllowedKeys = new Set([
         'Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Tab', 'Home', 'End',
@@ -11,7 +11,11 @@ class LogicForm extends HTMLElement {
     #integers = new Set(['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']);
     #valueGetterObject;
     #isInit = false;
-    form = document.createElement('form');
+    #titleEl = document.createElement('p');
+    #submitButton = document.createElement('button');
+    #clearButton = document.createElement('button');
+    #resetButton = document.createElement('button');
+    #buttonRow = document.createElement('div');
     constructor(config) {
         super();
         this.#config = config;
@@ -64,7 +68,6 @@ class LogicForm extends HTMLElement {
         label.htmlFor = id;
         labelSpan.textContent = f.label.trim();
         requiredSpan.textContent = ' *';
-        requiredSpan.style.color = 'red';
         requiredSpan.ariaHidden = 'true';
         label.replaceChildren(labelSpan, requiredSpan);
         let input;
@@ -96,7 +99,6 @@ class LogicForm extends HTMLElement {
             const whiteSpaceBlocker = () => input.setCustomValidity(!!getValue() ? '' : 'This field is required.');
             setRequired = (bool) => {
                 input.required = !!bool;
-                input.removeEventListener('input', whiteSpaceBlocker);
                 if (!!bool)
                     input.addEventListener('input', whiteSpaceBlocker);
             };
@@ -123,9 +125,7 @@ class LogicForm extends HTMLElement {
             const wrapperSpan = document.createElement('span');
             wrapperSpan.replaceChildren(labelSpan, requiredSpan);
             label.replaceChildren(input, wrapperSpan);
-            label.style.display = 'flex';
             div.replaceChildren(label);
-            div.style.alignContent = 'end';
             getValue = () => !!input.checked;
             setValue = (val) => input.checked = !!val;
             setRequired = (bool) => input.required = !!bool;
@@ -191,7 +191,7 @@ class LogicForm extends HTMLElement {
             input.name = f.name;
             const validValues = new Set(f.options.map(o => o.value));
             for (const option of f.options) {
-                if (!option.value?.trim()) {
+                if (typeof option.value === 'undefined') {
                     throw new Error(`select ${f.name} has an option with no value`);
                 }
                 const selected = option.value === f.value && validValues.has(f.value);
@@ -199,7 +199,11 @@ class LogicForm extends HTMLElement {
             }
             div.replaceChildren(label, input);
             getValue = () => validValues.has(input.value) ? input.value : '';
-            setValue = (val) => input.value = validValues.has(val) ? val : '';
+            setValue = (val) => {
+                if (!validValues.has(val))
+                    return;
+                input.value = val;
+            };
             setRequired = (bool) => input.required = !!bool;
         }
         else if (f.type === 'checkboxgroup') {
@@ -321,20 +325,17 @@ class LogicForm extends HTMLElement {
             updateClearButtonVisibility();
         }
         else if (f.type === 'list') {
-            ;
             input = document.createElement('fieldset');
             input.id = id;
             const legend = document.createElement('legend');
+            const innerDiv = document.createElement('div');
             legend.replaceChildren(f.label.trim(), requiredSpan);
-            input.append(legend);
+            input.append(legend, innerDiv);
             div.replaceChildren(input);
             const listItems = new Set();
-            const hiddenInputDiv = document.createElement('div');
-            hiddenInputDiv.style.display = 'none';
             const buildItem = (val = '') => {
                 const itemDiv = document.createElement('div');
                 itemDiv.style.display = 'flex';
-                itemDiv.style.margin = '0px .5rem .25rem .5rem';
                 const deleteButton = document.createElement('button');
                 deleteButton.type = 'button';
                 deleteButton.title = 'Remove';
@@ -367,18 +368,19 @@ class LogicForm extends HTMLElement {
             const addItemButton = document.createElement('button');
             addItemButton.type = 'button';
             addItemButton.textContent = 'Add';
+            addItemButton.addEventListener('click', () => addItem(''));
             const addItem = (val) => {
                 if (this.#isInteger(f.max) && listItems.size >= f.max)
                     return;
                 const item = buildItem(val);
                 listItems.add(item);
-                addItemButton.before(item.itemDiv);
+                innerDiv.append(item.itemDiv);
                 item.itemDiv.dispatchEvent(new Event('change', { bubbles: true }));
             };
-            addItemButton.addEventListener('click', () => addItem(''));
-            input.append(addItemButton);
             const min = this.#isInteger(f.min) ? f.min : 1;
             const max = this.#isInteger(f.max) ? f.max : 20;
+            if (min !== max)
+                innerDiv.append(addItemButton);
             getValue = () => {
                 const val = [...listItems].map(item => item.value?.trim()).filter(Boolean);
                 if (this.#isInteger(f.max))
@@ -386,7 +388,7 @@ class LogicForm extends HTMLElement {
                 return val;
             };
             setValue = (val) => {
-                val = val.filter(Boolean);
+                val = val.filter(str => typeof str === 'string' && !!str.trim());
                 for (const item of listItems)
                     item.remove();
                 if (val.length > max)
@@ -408,6 +410,7 @@ class LogicForm extends HTMLElement {
                 const isAtMax = listItems.size >= max;
                 for (const item of listItems) {
                     item.deleteButton.style.visibility = isAtMin ? 'hidden' : '';
+                    item.deleteButton.disabled = isAtMin;
                 }
                 addItemButton.disabled = isAtMax;
             });
@@ -417,13 +420,22 @@ class LogicForm extends HTMLElement {
             input = document.createElement('input');
             input.type = 'date';
             input.id = id;
+            input.value = f.value ?? '';
+            input.name = f.name;
+            if (f.min)
+                input.min = f.min;
+            if (f.max)
+                input.max = f.max;
             div.replaceChildren(label, input);
             getValue = () => {
                 return input.value;
             };
-            setValue = (isoString) => {
+            setValue = (dateString) => {
+                input.value = dateString;
             };
-            setRequired = () => {
+            setRequired = (bool) => {
+                input.required = !!bool;
+                requiredSpan.style.display = !!bool ? '' : 'none';
             };
         }
         else {
@@ -431,7 +443,7 @@ class LogicForm extends HTMLElement {
         }
         input.addEventListener(eventToListenFor, () => {
             this.#update();
-            input.dispatchEvent(new CustomEvent('logic-form-update', { bubbles: true, detail: { input } }));
+            this.#dispatchUpdateEvent(input);
         });
         let _visible = true;
         let _disabled = false;
@@ -501,7 +513,7 @@ class LogicForm extends HTMLElement {
         const isStable = this.#isSnapshotEqual(oldSnapshot, newSnapshot);
         this.#updatePasses += 1;
         if (isStable) {
-            console.log(`Updated the form state in ${this.#updatePasses} passes.`);
+            console.info(`Updated the form state in ${this.#updatePasses} ${this.#updatePasses > 1 ? 'passes' : 'pass'}.`);
             this.#updatePasses = 0;
             return;
         }
@@ -544,7 +556,7 @@ class LogicForm extends HTMLElement {
             const side2 = this.#readRuleSide(right);
             if (Array.isArray(side1) && Array.isArray(side2))
                 return this.#isFlatStringArrayEqual(side1, side2) === false;
-            return this.#readRuleSide(left) !== this.#readRuleSide(right);
+            return side1 !== side2;
         }
         if ('>' in rule) {
             const [left, right] = rule['>'];
@@ -580,11 +592,13 @@ class LogicForm extends HTMLElement {
         }
         return side;
     }
-    #titleEl = document.createElement('p');
-    #submitButton = document.createElement('button');
-    #clearButton = document.createElement('button');
-    #resetButton = document.createElement('button');
-    #buttonRow = document.createElement('div');
+    #dispatchUpdateEvent(input) {
+        if (typeof input === 'string') {
+            this.form.dispatchEvent(new CustomEvent('logic-form-update', { bubbles: true, detail: { input } }));
+            return;
+        }
+        input.dispatchEvent(new CustomEvent('logic-form-update', { bubbles: true, detail: { input } }));
+    }
     connectedCallback() {
         if (this.#isInit)
             return;
@@ -605,7 +619,6 @@ class LogicForm extends HTMLElement {
                 this.form.setAttribute(attr, val);
             }
         }
-        this.#titleEl.style.gridColumn = '1/-1';
         this.#submitButton.type = 'submit';
         this.#submitButton.textContent = 'Submit';
         this.#clearButton.type = 'button';
@@ -615,11 +628,11 @@ class LogicForm extends HTMLElement {
         this.#resetButton.textContent = 'Reset';
         this.#resetButton.addEventListener('click', () => this.reset());
         this.#buttonRow.replaceChildren(this.#resetButton, this.#clearButton, this.#submitButton);
-        this.style.display = 'contents';
         this.replaceChildren(this.form);
         this.#isInit = true;
     }
-    get value() {
+    form = document.createElement('form');
+    get $() {
         return this.#valueGetterObject;
     }
     getValue() {
@@ -640,16 +653,16 @@ class LogicForm extends HTMLElement {
                 this.#fields[key].value = this.#getEmptyValue(this.#fields[key]);
             }
         }
-        this.form.dispatchEvent(new CustomEvent('logic-form-update', { bubbles: true, detail: { input: 'setValue' } }));
+        this.#dispatchUpdateEvent('setValue');
     }
     mergeValue(val) {
         for (const key in val) {
             this.#fields[key].value = val[key];
         }
-        this.form.dispatchEvent(new CustomEvent('logic-form-update', { bubbles: true, detail: { input: 'mergeValue' } }));
+        this.#dispatchUpdateEvent('mergeValue');
     }
     getJson() {
-        return JSON.stringify(this.#valueGetterObject);
+        return JSON.stringify(this.getValue());
     }
     getFormData() {
         return new FormData(this.form);
@@ -658,24 +671,21 @@ class LogicForm extends HTMLElement {
         for (const f of Object.values(this.#fields)) {
             f.value = this.#getEmptyValue(f);
         }
-        this.form.dispatchEvent(new CustomEvent('logic-form-update', { bubbles: true, detail: { input: 'clear' } }));
-        return this.#valueGetterObject;
+        this.#dispatchUpdateEvent('clear');
     }
     reset() {
         this.form.reset();
-        for (const fieldInternal of Object.values(this.#fields)) {
-            fieldInternal.updateState();
-        }
-        this.form.dispatchEvent(new CustomEvent('logic-form-update', { bubbles: true, detail: { input: 'reset' } }));
+        this.#update();
+        this.#dispatchUpdateEvent('reset');
         return this.#valueGetterObject;
     }
-    saveState(name) {
+    saveSnapshot(name) {
         const clone = structuredClone(this.#valueGetterObject);
-        this.#states[name] = clone;
+        this.#snapshots[name] = clone;
         return clone;
     }
-    loadState(name) {
-        const value = this.#states[name];
+    loadSnapshot(name) {
+        const value = this.#snapshots[name];
         if (!value)
             return;
         this.setValue(value);
@@ -701,11 +711,9 @@ class LogicForm extends HTMLElement {
             });
             this.form.append(fieldInternal.el);
         }
-        for (const fieldInternal of Object.values(this.#fields)) {
-            fieldInternal.updateState();
-        }
-        this.form.dispatchEvent(new CustomEvent('logic-form-update', { bubbles: true, detail: { input: 'setConfig' } }));
         this.form.append(this.#buttonRow);
+        this.#update();
+        this.#dispatchUpdateEvent('setConfig');
     }
 }
 customElements.define('logic-form', LogicForm);
