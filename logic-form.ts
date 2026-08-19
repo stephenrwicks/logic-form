@@ -558,7 +558,6 @@ class LogicForm extends HTMLElement {
      * **/
     #updatePasses = 0;
     #update() {
-        // At the moment there is nothing that can make this do more than 2 passes.
         const oldSnapshot = this.getValue();
         for (const f of Object.values(this.#fields)) {
             f.updateState();
@@ -566,7 +565,7 @@ class LogicForm extends HTMLElement {
         const newSnapshot = this.getValue();
         const isStable = this.#isSnapshotEqual(oldSnapshot, newSnapshot);
         this.#updatePasses += 1;
-        if (isStable || this.#updatePasses >= 10) {
+        if (isStable) {
             console.log(`Updated the form state in ${this.#updatePasses} passes.`);
             this.#updatePasses = 0;
             return;

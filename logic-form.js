@@ -500,7 +500,7 @@ class LogicForm extends HTMLElement {
         const newSnapshot = this.getValue();
         const isStable = this.#isSnapshotEqual(oldSnapshot, newSnapshot);
         this.#updatePasses += 1;
-        if (isStable || this.#updatePasses >= 10) {
+        if (isStable) {
             console.log(`Updated the form state in ${this.#updatePasses} passes.`);
             this.#updatePasses = 0;
             return;
