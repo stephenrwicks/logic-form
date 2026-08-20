@@ -2,14 +2,15 @@
 
 **Work in progress — March / April / August 2026**
 
+No AI for this project except to generate demos.
+
 This is a small form framework built in a native Web Component. It generates a plain HTML form from a JSON configuration. The Web Component `<logic-form>` is just a thin wrapper around a real `<form>` which is rendered in the light DOM (no shadow DOM is used).
 
 Create the form using the `new LogicForm(config)` constructor, or put the entire config JSON string in the `data-config` attribute in HTML (on the logic-form element). The latter is especially interesting because it allows the entire form with its logic to be controlled by the backend.
 
-Field values are two-way bound with getters and setters: setting `form.value.fieldName` will update the DOM. `form.value.fieldName` reads directly from the DOM so it is always accurate. This get/set pattern also sanitizes some annoying edge cases: fields are always trimmed, empty list options are ignored, etc.
+Field values are two-way bound with getters and setters in the special "$" object: setting `form.$.fieldName` will update the DOM. Accessing `form.$.fieldName` reads directly from the DOM so it is always accurate. This get/set pattern also sanitizes some annoying edge cases: fields are always trimmed, empty list options are ignored, etc.
 
 Currently supports these field types:
-
 
 - `'textbox'`
 - `'textarea'`
@@ -47,7 +48,7 @@ Currently `"required"`, `"disabled"`, and `"visible"` are eligible for rules.
 ### Properties
 
 * `form`: The native HTML `<form>` element.
-* `value`: Two-way bound value object.
+* `$`: Special two-way bound value object.
 
 ### Methods
 
@@ -58,6 +59,6 @@ Currently `"required"`, `"disabled"`, and `"visible"` are eligible for rules.
 * `getFormData()`: Returns a native `FormData` object.
 * `clear()`: Clears all form fields.
 * `reset()`: Resets the form to its default values from the configuration.
-* `saveState(name: string)`: Saves a snapshot of the current form state internally under the specified name.
-* `loadState(name: string)`: Restores the form state from a previously saved snapshot.
+* `saveSnapshot(name: string)`: Saves a snapshot of the current form state internally under the specified name.
+* `loadSnapshot(name: string)`: Restores the form state from a previously saved snapshot.
 * `setConfig(config)`: Rebuilds the form using a new configuration.
