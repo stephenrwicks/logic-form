@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../logic-form.css">
+  <script src="../logic-form.js"></script>
+
+</head>
+
+<body>
+
+<logic-form
+  id="demo"
+  action="https://postman-echo.com/post"
+  method="POST"
+  data-config='{
+  "title": "Contact the Library",
+  "fields": [
+    {
+      "type": "textbox",
+      "name": "name",
+      "label": "Name",
+      "value": "",
+      "placeholder": "Enter your name",
+      "required": true
+    },
+    {
+      "type": "textbox",
+      "name": "email",
+      "label": "Email Address",
+      "value": "",
+      "placeholder": "you@example.com",
+      "required": true
+    },
+    {
+      "type": "select",
+      "name": "reason",
+      "label": "What can we help you with?",
+      "value": "",
+      "options": [
+        { "text": "-", "value": "" },
+        { "text": "Library Account", "value": "account" },
+        { "text": "Books and Materials", "value": "materials" },
+        { "text": "Technology Help", "value": "technology" },
+        { "text": "Programs and Events", "value": "programs" },
+        { "text": "Something Else", "value": "other" }
+      ],
+      "required": true
+    },
+    {
+      "type": "select",
+      "name": "accountIssue",
+      "label": "What would you like to update?",
+      "value": "",
+      "options": [
+        { "text": "-", "value": "" },
+        { "text": "Mailing Address", "value": "address" },
+        { "text": "Email Address", "value": "email" },
+        { "text": "Phone Number", "value": "phone" },
+        { "text": "Preferred Name", "value": "name" }
+      ],
+      "visible": [
+        { "==": [{ "var": "reason" }, "account"] }
+      ],
+      "required": [
+        { "==": [{ "var": "reason" }, "account"] }
+      ]
+    },
+    {
+      "type": "textbox",
+      "name": "newAddress",
+      "label": "New Mailing Address",
+      "value": "",
+      "placeholder": "Enter your new address",
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "account"] },
+            { "==": [{ "var": "accountIssue" }, "address"] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "account"] },
+            { "==": [{ "var": "accountIssue" }, "address"] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "textbox",
+      "name": "newEmail",
+      "label": "New Email Address",
+      "value": "",
+      "placeholder": "Enter your new email address",
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "account"] },
+            { "==": [{ "var": "accountIssue" }, "email"] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "account"] },
+            { "==": [{ "var": "accountIssue" }, "email"] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "textbox",
+      "name": "newPhone",
+      "label": "New Phone Number",
+      "value": "",
+      "placeholder": "Enter your new phone number",
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "account"] },
+            { "==": [{ "var": "accountIssue" }, "phone"] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "account"] },
+            { "==": [{ "var": "accountIssue" }, "phone"] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "textbox",
+      "name": "newPreferredName",
+      "label": "Preferred Name",
+      "value": "",
+      "placeholder": "Enter your preferred name",
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "account"] },
+            { "==": [{ "var": "accountIssue" }, "name"] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "account"] },
+            { "==": [{ "var": "accountIssue" }, "name"] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "name": "materialIssue",
+      "label": "What do you need help with?",
+      "value": "",
+      "options": [
+        { "text": "-", "value": "" },
+        { "text": "Find a Book or Other Material", "value": "find" },
+        { "text": "Request an Item", "value": "request" },
+        { "text": "Renew an Item", "value": "renew" },
+        { "text": "Report a Missing or Damaged Item", "value": "damaged" }
+      ],
+      "visible": [
+        { "==": [{ "var": "reason" }, "materials"] }
+      ],
+      "required": [
+        { "==": [{ "var": "reason" }, "materials"] }
+      ]
+    },
+    {
+      "type": "textbox",
+      "name": "materialSearch",
+      "label": "What are you looking for?",
+      "value": "",
+      "placeholder": "Title, author, subject, or ISBN",
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "materials"] },
+            { "==": [{ "var": "materialIssue" }, "find"] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "materials"] },
+            { "==": [{ "var": "materialIssue" }, "find"] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "list",
+      "name": "illRequests",
+      "label": "Items You Would Like to Request",
+      "value": [],
+      "min": 1,
+      "max": 5,
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "materials"] },
+            { "==": [{ "var": "materialIssue" }, "request"] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "materials"] },
+            { "==": [{ "var": "materialIssue" }, "request"] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "radiogroup",
+      "name": "illFormat",
+      "label": "Preferred Format",
+      "value": "",
+      "options": [
+        { "text": "Print", "value": "print" },
+        { "text": "Large Print", "value": "largeprint" },
+        { "text": "DVD", "value": "dvd" },
+        { "text": "CD / Audiobook", "value": "audio" }
+      ],
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "materials"] },
+            { "==": [{ "var": "materialIssue" }, "request"] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "materials"] },
+            { "==": [{ "var": "materialIssue" }, "request"] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "textbox",
+      "name": "renewalItem",
+      "label": "Item to Renew",
+      "value": "",
+      "placeholder": "Title or barcode",
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "materials"] },
+            { "==": [{ "var": "materialIssue" }, "renew"] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "materials"] },
+            { "==": [{ "var": "materialIssue" }, "renew"] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "textbox",
+      "name": "damagedItem",
+      "label": "Missing or Damaged Item",
+      "value": "",
+      "placeholder": "Title or barcode",
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "materials"] },
+            { "==": [{ "var": "materialIssue" }, "damaged"] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "materials"] },
+            { "==": [{ "var": "materialIssue" }, "damaged"] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "name": "technologyType",
+      "label": "What kind of technology help do you need?",
+      "value": "",
+      "options": [
+        { "text": "-", "value": "" },
+        { "text": "Library Website", "value": "website" },
+        { "text": "Library App", "value": "app" },
+        { "text": "eBooks or eAudiobooks", "value": "ebooks" },
+        { "text": "Public Computer", "value": "computer" },
+        { "text": "Printing or Scanning", "value": "printing" },
+        { "text": "Wi-Fi", "value": "wifi" }
+      ],
+      "visible": [
+        { "==": [{ "var": "reason" }, "technology"] }
+      ],
+      "required": [
+        { "==": [{ "var": "reason" }, "technology"] }
+      ]
+    },
+    {
+      "type": "select",
+      "name": "ebookDevice",
+      "label": "What device are you using?",
+      "value": "",
+      "options": [
+        { "text": "-", "value": "" },
+        { "text": "iPhone or iPad", "value": "ios" },
+        { "text": "Android Phone or Tablet", "value": "android" },
+        { "text": "Kindle", "value": "kindle" },
+        { "text": "Windows Computer", "value": "windows" },
+        { "text": "Mac", "value": "mac" },
+        { "text": "Other", "value": "other" }
+      ],
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "technology"] },
+            { "==": [{ "var": "technologyType" }, "ebooks"] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "technology"] },
+            { "==": [{ "var": "technologyType" }, "ebooks"] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "name": "ebookProblem",
+      "label": "What problem are you having?",
+      "value": "",
+      "options": [
+        { "text": "-", "value": "" },
+        { "text": "Cannot Download", "value": "download" },
+        { "text": "Cannot Open", "value": "open" },
+        { "text": "Cannot Sign In", "value": "login" },
+        { "text": "Book Expired", "value": "expired" }
+      ],
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "technology"] },
+            { "==": [{ "var": "technologyType" }, "ebooks"] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "technology"] },
+            { "==": [{ "var": "technologyType" }, "ebooks"] },
+            { "!=": [{ "var": "ebookDevice" }, ""] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "name": "computerIssue",
+      "label": "What is happening on the public computer?",
+      "value": "",
+      "options": [
+        { "text": "-", "value": "" },
+        { "text": "Cannot Log In", "value": "login" },
+        { "text": "Computer Is Not Working", "value": "hardware" },
+        { "text": "Internet Is Not Working", "value": "internet" },
+        { "text": "Need Help Using Software", "value": "software" }
+      ],
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "technology"] },
+            { "==": [{ "var": "technologyType" }, "computer"] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "technology"] },
+            { "==": [{ "var": "technologyType" }, "computer"] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "textbox",
+      "name": "printingDocument",
+      "label": "What are you trying to print or scan?",
+      "value": "",
+      "placeholder": "Describe the document or task",
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "technology"] },
+            { "==": [{ "var": "technologyType" }, "printing"] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "technology"] },
+            { "==": [{ "var": "technologyType" }, "printing"] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "textbox",
+      "name": "wifiDevice",
+      "label": "What device are you trying to connect?",
+      "value": "",
+      "placeholder": "Laptop, phone, tablet, etc.",
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "technology"] },
+            { "==": [{ "var": "technologyType" }, "wifi"] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "technology"] },
+            { "==": [{ "var": "technologyType" }, "wifi"] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "radiogroup",
+      "name": "programName",
+      "label": "Which program or event is this about?",
+      "value": "",
+      "options": [
+        { "text": "Book Club", "value": "bookclub" },
+        { "text": "Story Time", "value": "storytime" },
+        { "text": "Computer Workshop", "value": "computerworkshop" },
+        { "text": "Craft Program", "value": "crafts" },
+        { "text": "Other Program", "value": "other" }
+      ],
+      "visible": [
+        { "==": [{ "var": "reason" }, "programs"] }
+      ],
+      "required": [
+        { "==": [{ "var": "reason" }, "programs"] }
+      ]
+    },
+    {
+      "type": "select",
+      "name": "bookClubQuestion",
+      "label": "What is your Book Club question?",
+      "value": "",
+      "options": [
+        { "text": "-", "value": "" },
+        { "text": "Next Meeting", "value": "meeting" },
+        { "text": "Book Selection", "value": "book" },
+        { "text": "Registration", "value": "registration" }
+      ],
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "programs"] },
+            { "==": [{ "var": "programName" }, "bookclub"] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "programs"] },
+            { "==": [{ "var": "programName" }, "bookclub"] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "date",
+      "name": "storyTimeDate",
+      "label": "Preferred Story Time Date",
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "programs"] },
+            { "==": [{ "var": "programName" }, "storytime"] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "programs"] },
+            { "==": [{ "var": "programName" }, "storytime"] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "name": "computerWorkshopLevel",
+      "label": "What is your experience level?",
+      "value": "",
+      "options": [
+        { "text": "-", "value": "" },
+        { "text": "Beginner", "value": "beginner" },
+        { "text": "Intermediate", "value": "intermediate" },
+        { "text": "Advanced", "value": "advanced" }
+      ],
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "programs"] },
+            { "==": [{ "var": "programName" }, "computerworkshop"] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "programs"] },
+            { "==": [{ "var": "programName" }, "computerworkshop"] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "textbox",
+      "name": "craftSupply",
+      "label": "What craft are you asking about?",
+      "value": "",
+      "placeholder": "Describe the craft or supplies",
+      "visible": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "programs"] },
+            { "==": [{ "var": "programName" }, "crafts"] }
+          ]
+        }
+      ],
+      "required": [
+        {
+          "and": [
+            { "==": [{ "var": "reason" }, "programs"] },
+            { "==": [{ "var": "programName" }, "crafts"] }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "textarea",
+      "name": "message",
+      "label": "Message",
+      "value": "",
+      "placeholder": "Tell us anything else we should know",
+      "visible": [
+        {
+          "or": [
+            {
+              "and": [
+                { "==": [{ "var": "reason" }, "account"] },
+                { "!=": [{ "var": "accountIssue" }, ""] }
+              ]
+            },
+            {
+              "and": [
+                { "==": [{ "var": "reason" }, "materials"] },
+                { "!=": [{ "var": "materialIssue" }, ""] }
+              ]
+            },
+            {
+              "and": [
+                { "==": [{ "var": "reason" }, "technology"] },
+                { "!=": [{ "var": "technologyType" }, ""] }
+              ]
+            },
+            {
+              "and": [
+                { "==": [{ "var": "reason" }, "programs"] },
+                { "!=": [{ "var": "programName" }, ""] }
+              ]
+            },
+            { "==": [{ "var": "reason" }, "other"] }
+          ]
+        }
+      ],
+      "required": true
+    }
+  ]
+}'></logic-form>
+
+  <script>
+    const x = document.querySelector('logic-form');
+    x.addEventListener('logic-form-update', (e) => {
+      console.log(e.detail);
+    })
+
+  </script>
+  <!-- <script src="demos/formbuilderconfigs.js"></script>
+  <script src="demos/formbuilder.js"></script> -->
+</body>
+
+</html>

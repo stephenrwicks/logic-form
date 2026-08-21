@@ -1,30 +1,39 @@
 "use strict";
-const textboxForm = new LogicForm(textboxFormConfig);
-const pre = document.querySelector('#pre');
+const formBuilder = new LogicForm(formBuilderConfig);
+const pre = document.createElement('pre');
 const htmlDiv = document.createElement('div');
-const update = (e) => {
-    if (e)
-        console.log(e.detail.input);
+htmlDiv.replaceChildren('Use this HTML to generate the above sample form: ', pre);
+htmlDiv.style.gridColumn = 'span 2';
+const update = () => {
+    const formBuilderValue = formBuilder.getValue();
     sampleForm.setConfig({
         title: 'Sample form',
         fields: [
-            textboxForm.getValue()
+            formBuilderValue
         ]
     });
-    htmlDiv.innerText = `
-        Use this HTML to generate the above sample form: 
-
-        <logic-form data-config='{title: "Sample Form", 
-        fields: [${JSON.stringify(textboxForm.getValue(), null, 4)}]
-        '></logic-form>
-    `;
+    pre.innerText = `<logic-form data-theme="green" data-config='{
+title: "Sample Form", 
+fields: [${JSON.stringify(formBuilderValue, null, 4)}]
+'></logic-form>`;
 };
-textboxForm.addEventListener('logic-form-update', update);
+formBuilder.addEventListener('logic-form-update', update);
 const sampleForm = new LogicForm({ title: 'Sample form', fields: [] });
+sampleForm.id = 'sample-form';
+sampleForm.dataset.theme = 'green';
 const grid = document.createElement('div');
 grid.style.display = 'grid';
-grid.style.gridTemplateColumns = '1fr 1fr';
-grid.style.gap = '5rem';
-grid.append(textboxForm, sampleForm, htmlDiv);
-document.body.append(grid);
-setTimeout(update);
+grid.style.gridTemplateColumns = '2fr 3fr';
+grid.style.gap = '3rem';
+grid.replaceChildren(formBuilder, sampleForm, htmlDiv);
+document.body.replaceChildren(grid);
+update();
+const getterButton = document.createElement('button');
+getterButton.addEventListener('click', () => {
+    console.log(document.querySelector('#sample-form').$[formBuilder.$.name]);
+});
+getterButton.textContent = `Fire a getter to show the value of the sample field: console.log(document.querySelector('#sample-form').$.${formBuilder.$.name});`;
+sampleForm.addEventListener('logic-form-update', () => {
+    getterButton.textContent = `Fire a getter to show the value of the sample field: console.log(document.querySelector('#sample-form').$.${formBuilder.$.name});`;
+});
+htmlDiv.append(getterButton);
