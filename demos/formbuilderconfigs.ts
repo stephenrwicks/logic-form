@@ -6,20 +6,28 @@ const baseFields: Field[] = [
         options: [
             { text: "Textbox", value: "textbox" },
             { text: "Textarea", value: "textarea" },
-            { text: "Numeric Textbox (Zipcodes, etc.)", value: "numerictextbox" },
+            { text: "Integer", value: "integer" },
+            { text: "Numeric Textbox", value: "numerictextbox" },
             { text: "Checkbox", value: "checkbox" },
             { text: "Select", value: "select" },
             { text: "List", value: "list" },
+            { text: "Date", value: "date" },
         ],
+        defaultValue: {
+            if: [
+                { "==": [{ "var": "required" }, true] },
+                // "list" is not being selected but checkbox is. Maybe something weird with default selected options.
+            ], then: "checkbox", else: "list"
+        },
     },
     {
         type: "textbox",
         name: "name",
-        label: "Name",
+        label: "Name / Key (avoid spaces)",
         required: true,
         minLength: 1,
         maxLength: 50,
-        value: "newField"
+        defaultValue: 'newField',
     },
     {
         type: "textbox",
@@ -28,7 +36,21 @@ const baseFields: Field[] = [
         required: true,
         minLength: 1,
         maxLength: 50,
-        value: "New Field"
+        defaultValue: {
+            if: [
+                { "==": [{ "var": "type" }, 'checkbox'] },
+            ],
+            then: "New Checkbox",
+            elseif: [
+                {
+                    if: [
+                        { "==": [{ "var": "type" }, 'textbox'] },
+                    ],
+                    then: "New Textbox",
+                }
+            ],
+            else: "New Something Else"
+        },
     },
     // These next three should be able to toggle between a boolean or some kind of Rule subform.
     // Maybe we use a radiogroup to toggle between them.
@@ -36,19 +58,19 @@ const baseFields: Field[] = [
         type: "checkbox",
         name: "required",
         label: "Required",
-        value: true,
+        defaultValue: true,
     },
     {
         type: "checkbox",
         name: "visible",
         label: "Visible",
-        value: true,
+        defaultValue: true,
     },
     {
         type: "checkbox",
         name: "disabled",
         label: "Disabled",
-        value: false
+        defaultValue: false
     }
 ];
 
@@ -66,7 +88,9 @@ const checkboxFields: Field[] = [
 
 const textboxFields: Field[] = [
     {
-        type: "textbox",
+        // Type is mad here because ifRule hasn't resolved
+        //type: { if: [{ "==": [{ "var": "type" }, "checkbox"] }], then: "checkbox", else: "textbox" },
+        type: 'textbox',
         name: "value",
         label: "Default Value",
         minLength: 1,
@@ -89,12 +113,25 @@ const textboxFields: Field[] = [
         label: "Placeholder",
         minLength: 1,
         maxLength: 50,
+        defaultValue: {
+            if: [
+                {
+                    "or":
+                        [
+                            { "==": [{ "var": "type" }, "textbox"] },
+                            { "==": [{ "var": "type" }, "integer"] },
+                        ]
+                }
+            ], then: "test", else: "test2"
+        },
+        //value: 'a',
         visible: [
             {
                 "or":
                     [
                         { "==": [{ "var": "type" }, "textbox"] },
                         { "==": [{ "var": "type" }, "textarea"] },
+                        { "==": [{ "var": "type" }, "integer"] },
                         { "==": [{ "var": "type" }, "numerictextbox"] },
                     ]
             }
@@ -147,13 +184,19 @@ const selectFields: Field[] = [
     },
 ];
 
-const listFields: Field[] = [
+const minAndMax: Field[] = [
     {
         type: "integer",
         name: "min",
         label: "Min",
         visible: [
-            { "==": [{ "var": "type" }, "list"] },
+            {
+                "or":
+                    [
+                        { "==": [{ "var": "type" }, "integer"] },
+                        { "==": [{ "var": "type" }, "list"] },
+                    ]
+            }
         ]
     },
     {
@@ -161,12 +204,19 @@ const listFields: Field[] = [
         name: "max",
         label: "Max",
         visible: [
-            { "==": [{ "var": "type" }, "list"] },
+            {
+                "or":
+                    [
+                        { "==": [{ "var": "type" }, "integer"] },
+                        { "==": [{ "var": "type" }, "list"] },
+                    ]
+            }
         ]
     },
 ];
 
+
 const formBuilderConfig: Config = {
     title: "Form Builder",
-    fields: [...baseFields, ...textboxFields, ...checkboxFields, ...selectFields, ...listFields]
+    fields: [...baseFields, ...textboxFields, ...checkboxFields, ...selectFields, ...minAndMax]
 }

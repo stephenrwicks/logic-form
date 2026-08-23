@@ -133,14 +133,17 @@ logic-form {
 
         &:has(:disabled) {
             cursor: default;
+            background-color: revert;
+            &:hover {
+                background-color: revert;
+            }
         }
-        
+
         /* Disabled fieldset instead of disabled inputs */
         &:where(fieldset:disabled label:has(input[type="radio"])),
         &:where(fieldset:disabled label:has(input[type="checkbox"])) {
             cursor: default;
             background-color: revert;
-
             &:hover {
                 background-color: revert;
             }
@@ -163,6 +166,7 @@ logic-form {
     select,
     input[type="text"],
     input[type="number"],
+    input[type="date"],
     textarea {
 
         display: block;

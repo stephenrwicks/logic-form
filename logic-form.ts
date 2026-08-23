@@ -44,6 +44,25 @@ class LogicForm extends HTMLElement {
         return !!val && typeof val === 'object' && 'var' in val && typeof val.var === 'string';
     }
 
+    #isRuleWithReturnValue(val: unknown): val is RuleWithReturnValue {
+        return !!val && typeof val === 'object' && 'if' in val && 'then' in val && typeof val.if === 'object';
+    }
+
+    /**
+        Parse if / else if / else from JSON and return the value
+     */
+    #resolveRuleWithReturnValue(rule: RuleWithReturnValue): Value {
+        const thenResult = this.#evaluateBooleanProperty(rule.if, false);
+        if (thenResult) return rule.then;
+        if (Array.isArray(rule.elseif)) {
+            for (const elseifRule of rule.elseif) {
+                const elseifResult = this.#evaluateBooleanProperty(elseifRule.if, false);
+                if (elseifResult) return elseifRule.then;
+            }
+        }
+        return rule.else ?? '';
+    }
+
     #isFlatStringArrayEqual(array1: string[], array2: string[]) {
         // Compare string value arrays for checkbox groups, etc. We don't care about order so we sort it first
         // Remove duplicates with Set since declaring a value twice on a group should still work the same as once.
@@ -65,7 +84,8 @@ class LogicForm extends HTMLElement {
     };
 
     #buildField(f: Field) {
-        if (f.name in this.#fields) throw new Error(`"${f.name}" exists in the config twice. Can't have two fields named the same.`)
+
+        if (f.name in this.#fields) throw new Error(`"${f.name}" exists in the config twice. Can't have two fields named the same.`);
         const id = `_${f.type}_${crypto.randomUUID()}`;
         const div = document.createElement('div');
         div.dataset.fieldName = f.name;
@@ -76,17 +96,17 @@ class LogicForm extends HTMLElement {
         label.htmlFor = id;
         labelSpan.textContent = f.label.trim();
         requiredSpan.textContent = ' *';
-        // requiredSpan.style.color = 'red';
         requiredSpan.ariaHidden = 'true';
         label.replaceChildren(labelSpan, requiredSpan);
         let input: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | HTMLFieldSetElement;
         let getValue: () => Value;
         let setValue: (val: any) => void;
         let setRequired: (bool: boolean) => void;
+        let setDefaultValue: () => void;
         let eventToListenFor: 'change' | 'input' = 'change';
-
+        const whiteSpaceBlocker = () => input.setCustomValidity(!!getValue() ? '' : 'This field is required.');
         this.#fixMinMax(f);
-        // minlength maxlength
+        //this.#fixMinlengthMaxlength(f);
 
         if (f.type === 'textbox' || f.type === 'textarea' || f.type === 'numerictextbox') {
             eventToListenFor = 'input'
@@ -94,21 +114,31 @@ class LogicForm extends HTMLElement {
             if (f.type === 'textbox' || f.type === 'numerictextbox') (input as HTMLInputElement).type = 'text';
             input.id = id;
             input.name = f.name;
-            if (f.value) input.defaultValue = f.value ?? '';
             if (f.placeholder) input.placeholder = f.placeholder;
             if (f.maxLength && this.#isInteger(f.maxLength)) input.maxLength = f.maxLength;
             if (f.minLength && this.#isInteger(f.minLength)) input.minLength = f.minLength;
             div.replaceChildren(label, input);
             getValue = () => (input as (HTMLInputElement | HTMLTextAreaElement)).value.trim();
+            setDefaultValue = () => {
+                if (typeof f.defaultValue === 'string' || typeof f.defaultValue === 'number') {
+                    (input as (HTMLInputElement | HTMLTextAreaElement)).defaultValue = String(f.defaultValue);
+                }
+                else if (this.#isRuleWithReturnValue(f.defaultValue)) {
+                    (input as (HTMLInputElement | HTMLTextAreaElement)).defaultValue = String(this.#resolveRuleWithReturnValue(f.defaultValue));
+                }
+                else {
+                    (input as (HTMLInputElement | HTMLTextAreaElement)).defaultValue = '';
+                }
+            };
             setValue = (val: string) => {
                 (input as (HTMLInputElement | HTMLTextAreaElement)).value = typeof val === 'string' ? val.trim() : '';
             };
-            const whiteSpaceBlocker = () => input.setCustomValidity(!!getValue() ? '' : 'This field is required.');
             setRequired = (bool) => {
                 (input as (HTMLInputElement | HTMLTextAreaElement)).required = !!bool;
                 // Prevent user from entering a space to bypass required. We could use "pattern" on textboxes but not textareas.
                 if (!!bool) input.addEventListener('input', whiteSpaceBlocker);
             };
+
 
             if (f.type === 'numerictextbox') {
                 input.inputMode = 'numeric';
@@ -129,7 +159,10 @@ class LogicForm extends HTMLElement {
             input.id = id;
             input.name = f.name;
             input.type = 'checkbox';
-            input.defaultChecked = !!f.value;
+            setDefaultValue = () => {
+                // I don't see how a conditional if rule works for default value for a checkbox
+                (input as HTMLInputElement).defaultChecked = !!f.defaultValue;
+            };
             const wrapperSpan = document.createElement('span');
             wrapperSpan.replaceChildren(labelSpan, requiredSpan);
             label.replaceChildren(input, wrapperSpan);
@@ -150,8 +183,8 @@ class LogicForm extends HTMLElement {
             input.placeholder = f.placeholder ?? '';
             const hasMin = this.#isNumeric(f.min);
             const hasMax = this.#isNumeric(f.max);
-            if (this.#isNumeric(f.value)) {
-                input.defaultValue = String(f.value);
+            if (this.#isNumeric(f.defaultValue)) {
+                input.defaultValue = String(f.defaultValue);
             }
             if (hasMin && hasMax && f.min! > f.max!) {
                 f.max = f.min;
@@ -221,11 +254,25 @@ class LogicForm extends HTMLElement {
                 if (typeof option.value === 'undefined') {
                     throw new Error(`select ${f.name} has an option with no value`)
                 }
-                const selected = option.value === f.value && validValues.has(f.value);
-                input.add(new Option(option.text, option.value, selected, selected));
+                input.add(new Option(option.text, option.value));
             }
             div.replaceChildren(label, input);
             getValue = () => validValues.has((input as HTMLSelectElement).value) ? (input as HTMLSelectElement).value : '';
+            setDefaultValue = () => {
+                if (typeof f.defaultValue === 'string') {
+
+                    for (const option of (input as HTMLSelectElement).options) {
+                        option.defaultSelected = option.value === f.defaultValue && validValues.has(f.defaultValue);
+                        //option.selected = option.value === f.defaultValue && validValues.has(f.defaultValue);
+                    }
+                }
+                else if (this.#isRuleWithReturnValue(f.defaultValue)) {
+                    const resolved = String(this.#resolveRuleWithReturnValue(f.defaultValue));
+                    for (const option of (input as HTMLSelectElement).options) {
+                        option.defaultSelected = option.value === resolved && validValues.has(resolved);
+                    }
+                }
+            };
             setValue = (val: string) => {
                 if (!validValues.has(val)) return;
                 (input as HTMLSelectElement).value = val;
@@ -235,7 +282,7 @@ class LogicForm extends HTMLElement {
         else if (f.type === 'checkboxgroup') {
 
             const validValues = new Set(f.options.map(o => o.value));
-            const defaultSelectedValues = new Set(f.value ?? []);
+            const defaultSelectedValues = new Set(f.defaultValue ?? []);
             input = document.createElement('fieldset');
             input.id = id;
             const legend = document.createElement('legend');
@@ -253,7 +300,7 @@ class LogicForm extends HTMLElement {
                 checkbox.type = 'checkbox';
                 checkbox.name = f.name;
                 checkbox.value = o.value;
-                checkbox.defaultChecked = defaultSelectedValues.has(o.value);
+                // checkbox.defaultChecked = defaultSelectedValues.has(o.value);
                 input.append(label);
                 return checkbox;
             });
@@ -296,6 +343,11 @@ class LogicForm extends HTMLElement {
                 if (!f.required && selectionLength === 0) checkboxes[0].setCustomValidity('');
             };
             input.addEventListener('change', minMax);
+            setDefaultValue = () => {
+                for (const checkbox of checkboxes) {
+                    checkbox.defaultChecked = defaultSelectedValues.has(checkbox.value);
+                }
+            };
             getValue = () => checkboxes.filter(c => c.checked && validValues.has(c.value)).map(c => c.value);
             setValue = (val: string[] = []) => {
                 const set = new Set(val.filter(v => validValues.has(v)));
@@ -337,7 +389,7 @@ class LogicForm extends HTMLElement {
                 radio.type = 'radio';
                 radio.name = f.name;
                 radio.value = o.value;
-                radio.defaultChecked = o.value === f.value;
+                //radio.defaultChecked = o.value === f.value;
                 input.append(label);
                 return radio;
             });
@@ -345,6 +397,11 @@ class LogicForm extends HTMLElement {
             input.append(clearButton);
 
             getValue = () => radios.find(r => r.checked && validValues.has(r.value))?.value ?? '';
+            setDefaultValue = () => {
+                for (const radio of radios) {
+                    radio.defaultChecked = radio.value === f.defaultValue;
+                }
+            };
             setValue = (val: string) => {
                 for (const radio of radios) {
                     radio.checked = val === radio.value && validValues.has(val);
@@ -424,7 +481,7 @@ class LogicForm extends HTMLElement {
                 return val;
             };
             setValue = (val: string[]) => {
-                val = val.filter(str => typeof str === 'string' && !!str.trim());
+                val = Array.isArray(val) ? val.filter(str => typeof str === 'string' && !!str.trim()) : [];
                 for (const item of listItems) item.remove();
                 if (val.length > max) val.length = max;
                 for (const str of val) {
@@ -453,13 +510,24 @@ class LogicForm extends HTMLElement {
                 }
                 addItemButton.disabled = isAtMax;
             });
-            setValue(Array.isArray(f.value) ? f.value : []);
+            // Can be removed once setDefaultValue is added
+            setValue(Array.isArray(f.defaultValue) ? f.defaultValue : []);
         }
         else if (f.type === 'date') {
             input = document.createElement('input');
             input.type = 'date';
             input.id = id;
-            input.value = f.value ?? '';
+            setDefaultValue = () => {
+                if (typeof f.defaultValue === 'string') {
+                    (input as HTMLInputElement).defaultValue = f.defaultValue;
+                }
+                else if (this.#isRuleWithReturnValue(f.defaultValue)) {
+                    (input as HTMLInputElement).defaultValue = String(this.#resolveRuleWithReturnValue(f.defaultValue));
+                }
+                else {
+                    (input as HTMLInputElement).defaultValue = '';
+                }
+            };
             input.name = f.name;
             // Check if min/max are actually dates
             if (f.min) input.min = f.min;
@@ -495,6 +563,7 @@ class LogicForm extends HTMLElement {
         let _visible = true;
         let _disabled = false;
         let _required = false;
+        //let _type = f.type;
 
         const cl = this;
         const internals: FieldInternal = {
@@ -527,12 +596,23 @@ class LogicForm extends HTMLElement {
                 return div;
             },
             updateState() {
-                _visible = cl.#evaluateProperty(f.visible, true);
-                _disabled = cl.#evaluateProperty(f.disabled, false);
-                _required = cl.#evaluateProperty(f.required, false);
+
+                //const newVisible = cl.#evaluateBooleanProperty(f.visible, true);
+                // if (_visible !== newVisible) {
+                //     if (newVisible) {
+
+                //     }
+                //     else {
+
+                //     }
+                // }
+                _visible = cl.#evaluateBooleanProperty(f.visible, true);
+                _disabled = cl.#evaluateBooleanProperty(f.disabled, false);
+                _required = cl.#evaluateBooleanProperty(f.required, false);
+                setDefaultValue?.();
 
                 if (_visible) {
-                    div.style.display = '';
+                    //div.style.display = '';
                     input.disabled = false || _disabled;
                     //div.style.height = '';
                 }
@@ -551,18 +631,19 @@ class LogicForm extends HTMLElement {
         return internals;
     }
 
-    #getEmptyValue(f: FieldInternal) {
+    #getEmptyValue(f: FieldInternal): '' | [] | false {
         if (f.type === 'checkbox') return false;
-        if (f.type === 'checkboxgroup' || f.type === 'list') return [] as string[];
+        if (f.type === 'checkboxgroup' || f.type === 'list') return [];
         return '';
     }
 
     /** 
      * Pass over the entire form and reevaluate each field's state.
      * Compare the new value with the old one to determine if we should pass again to evaluate again.
+     * e.g. updating hidden fields might change the value and require rules to be checked again
      * **/
     #updatePasses = 0;
-    #update() {
+    #update(): void {
         const oldSnapshot = this.getValue();
         for (const f of Object.values(this.#fields)) {
             f.updateState();
@@ -573,12 +654,22 @@ class LogicForm extends HTMLElement {
         if (isStable) {
             console.info(`Updated the form state in ${this.#updatePasses} ${this.#updatePasses > 1 ? 'passes' : 'pass'}.`);
             this.#updatePasses = 0;
+            const fragment = new DocumentFragment();
+            for (const f of this.#config.fields) {
+                if (this.#fields[f.name].visible) {
+                    fragment.append(this.#fields[f.name].el);
+                }
+            }
+            this.form.replaceChildren(this.#titleEl, fragment, this.#buttonRow);
             return;
         }
         // Update again
         this.#update();
     }
 
+    /** 
+        Sufficient object comparison
+    * **/
     #isSnapshotEqual(oldSnapshot: Record<string, Value>, newSnapshot: Record<string, Value>): boolean {
         if (Object.keys(oldSnapshot).length !== Object.keys(newSnapshot).length) return false;
         for (const key in oldSnapshot) {
@@ -596,9 +687,9 @@ class LogicForm extends HTMLElement {
      * Figures out what a property (required, visible, etc.) should be based on current form state.
      * Returns default if not defined. This is constantly run as the form updates
     */
-    #evaluateProperty(propertyVal: Rule[] | boolean | undefined, defaultValue: boolean): boolean {
+    #evaluateBooleanProperty(propertyVal: BooleanRule[] | boolean | undefined, defaultValue: boolean): boolean {
         if (typeof propertyVal === 'boolean') return propertyVal;
-        if (Array.isArray(propertyVal)) return propertyVal.every(rule => this.#evaluateRule(rule));
+        if (Array.isArray(propertyVal)) return propertyVal.every(rule => this.#evaluateBooleanRule(rule));
         return defaultValue;
     };
 
@@ -607,7 +698,7 @@ class LogicForm extends HTMLElement {
         * Also needs some type checking, maybe, or else you can do weird things like 'a' < 'aa' etc? This is probably ok
     *  Does check for arrays*/
 
-    #evaluateRule(rule: Rule): boolean {
+    #evaluateBooleanRule(rule: BooleanRule): boolean {
         if ('==' in rule) {
             const [left, right] = rule['=='];
             const side1 = this.#readRuleSide(left);
@@ -638,19 +729,27 @@ class LogicForm extends HTMLElement {
             const [left, right] = rule['<='];
             return this.#readRuleSide(left) <= this.#readRuleSide(right);
         }
+
+        // Add 'in' and '!in' operators
+
+        if ('in' in rule) {
+            const [left, right] = rule['in'];
+            return this.#readRuleSide(left) <= this.#readRuleSide(right);
+        }
+
         if ('not' in rule) {
             // A not rule looks like { not: { '==': [{ var: 'fieldName' }, 'fieldValue'] } }
             // True if it returns false
-            return this.#evaluateRule(rule.not) === false;
+            return this.#evaluateBooleanRule(rule.not) === false;
         }
         // These are collections of other rules, so we use recursion here
         if ('and' in rule) {
             // Everything has to return true
-            return rule.and.every((r) => this.#evaluateRule(r));
+            return rule.and.every((r) => this.#evaluateBooleanRule(r));
         }
         if ('or' in rule) {
             // True if one returns true
-            return rule.or.some((r) => this.#evaluateRule(r));
+            return rule.or.some((r) => this.#evaluateBooleanRule(r));
         }
 
         return true;
@@ -668,6 +767,9 @@ class LogicForm extends HTMLElement {
     }
 
 
+    /** 
+        Bubble a custom event
+    */
     #dispatchUpdateEvent(input: HTMLElement | string) {
         if (typeof input === 'string') {
             this.form.dispatchEvent(new CustomEvent('logic-form-update', { bubbles: true, detail: { input } }));
@@ -750,7 +852,7 @@ class LogicForm extends HTMLElement {
     /** Pass in object to set form values (ignore missing keys) */
     mergeValue(val: Record<string, Value>) {
         for (const key in val) {
-            this.#fields[key].value = val[key];
+            if (key in this.#fields) this.#fields[key].value = val[key];
         }
         this.#dispatchUpdateEvent('mergeValue');
     }
@@ -793,8 +895,8 @@ class LogicForm extends HTMLElement {
     /** Change the entire config and rebuild the form */
     setConfig(config: Config) {
         this.#config = config;
-        this.form.replaceChildren();
-        this.form.append(this.#titleEl);
+        //this.form.replaceChildren();
+        //this.form.append(this.#titleEl);
         this.#titleEl.textContent = config.title?.trim() ?? '';
         this.#fields = {};
         this.#valueGetterObject = Object.create(null);
@@ -812,9 +914,9 @@ class LogicForm extends HTMLElement {
                 },
                 enumerable: true,
             });
-            this.form.append(fieldInternal.el);
+            //this.form.append(fieldInternal.el);
         }
-        this.form.append(this.#buttonRow);
+        //this.form.append(this.#buttonRow);
         this.#update();
         this.#dispatchUpdateEvent('setConfig');
     }
@@ -830,14 +932,14 @@ type FieldBase = {
     type: 'textbox' | 'textarea' | 'checkbox' | 'select' | 'numerictextbox' | 'integer' | 'decimal' | 'checkboxgroup' | 'radiogroup' | 'list' | 'date';
     name: string;
     label: string;
-    visible?: Rule[] | boolean;
-    required?: Rule[] | boolean;
-    disabled?: Rule[] | boolean;
+    visible?: BooleanRule[] | boolean;
+    required?: BooleanRule[] | boolean;
+    disabled?: BooleanRule[] | boolean;
 }
 
 type Textbox = FieldBase & {
     type: 'textbox';
-    value?: string;
+    defaultValue?: string | RuleWithReturnValue;
     placeholder?: string;
     minLength?: number;
     maxLength?: number;
@@ -845,7 +947,7 @@ type Textbox = FieldBase & {
 
 type Textarea = FieldBase & {
     type: 'textarea';
-    value?: string;
+    defaultValue?: string;
     placeholder?: string;
     minLength?: number;
     maxLength?: number;
@@ -853,12 +955,12 @@ type Textarea = FieldBase & {
 
 type Checkbox = FieldBase & {
     type: 'checkbox';
-    value?: boolean;
+    defaultValue?: boolean;
 }
 
 type NumericTextbox = FieldBase & {
     type: 'numerictextbox';
-    value?: string;
+    defaultValue?: string;
     placeholder?: string;
     minLength?: number;
     maxLength?: number;
@@ -866,7 +968,7 @@ type NumericTextbox = FieldBase & {
 
 type Integer = FieldBase & {
     type: 'integer';
-    value?: number;
+    defaultValue?: number;
     placeholder?: string;
     min?: number;
     max?: number;
@@ -874,7 +976,7 @@ type Integer = FieldBase & {
 
 type Decimal = FieldBase & {
     type: 'decimal';
-    value?: number;
+    defaultValue?: number;
     placeholder?: string;
     min?: number;
     max?: number;
@@ -887,7 +989,7 @@ type Select = FieldBase & {
         value: string;
         //disabled?: Rule[] | boolean;
     }[];
-    value?: string;
+    defaultValue?: string | RuleWithReturnValue;
 }
 
 type CheckboxGroup = FieldBase & {
@@ -899,7 +1001,7 @@ type CheckboxGroup = FieldBase & {
     }[];
     min?: number;
     max?: number
-    value?: string[];
+    defaultValue?: string[];
 }
 
 type RadioGroup = FieldBase & {
@@ -909,19 +1011,19 @@ type RadioGroup = FieldBase & {
         value: string;
         //disabled?: Rule[] | boolean;
     }[];
-    value?: string;
+    defaultValue?: string;
 }
 
 type List = FieldBase & {
     type: 'list';
-    value?: string[];
+    defaultValue?: string[];
     min?: number;
     max?: number;
 }
 
 type DateInput = FieldBase & {
     type: 'date';
-    value?: string;
+    defaultValue?: string;
     min?: string;
     max?: string;
 }
@@ -934,13 +1036,26 @@ type LessThanRule = { '<': [Value | VarRef, Value | VarRef] };
 type LessThanOrEqualToRule = { '<=': [Value | VarRef, Value | VarRef] };
 type GreaterThanRule = { '>': [Value | VarRef, Value | VarRef] };
 type GreaterThanOrEqualToRule = { '>=': [Value | VarRef, Value | VarRef] };
+type InRule = { 'in': [Value | VarRef, Value | VarRef] };
 
 // metarules
-type AndRule = { and: Rule[] };
-type OrRule = { or: Rule[] };
-type NotRule = { not: Rule }; // { not: { '==': [{ var: 'fieldName' }, 'fieldValue'] } }
+type AndRule = { and: BooleanRule[] };
+type OrRule = { or: BooleanRule[] };
+type NotRule = { not: BooleanRule }; // { not: { '==': [{ var: 'fieldName' }, 'fieldValue'] } }
 
-type Rule = EqualsRule | NotEqualsRule | LessThanRule | LessThanOrEqualToRule | GreaterThanRule | GreaterThanOrEqualToRule | AndRule | OrRule | NotRule;
+type BooleanRule = EqualsRule | NotEqualsRule | LessThanRule | LessThanOrEqualToRule | GreaterThanRule | GreaterThanOrEqualToRule | InRule | AndRule | OrRule | NotRule;
+
+// Return a value based on a rule.
+// Can get pretty complex here.
+type RuleWithReturnValue = {
+    if: BooleanRule[],
+    then: Value,
+    elseif?: {
+        if: BooleanRule[],
+        then: Value,
+    }[],
+    else: Value
+};
 
 type Config = {
     title: string;
@@ -969,18 +1084,16 @@ type FieldInternal = {
 
 
 // Stuff to work on:
-// Date input
+// Date input min/max
 // Fix int, decimal, numeric inputs
 // Hidden input
 // Readonly state
-// Custom event bubbling
 // Live form builder
 // Disabled options
 // Rule-able min and max
 // Radio clear button styling, List button styling
 // in and !in rules
 // Select optgroups
-// Modify everything to have one event listener on the form?
 // Custom errors
 // Combobox input - Can reuse most of my custom one.
 // Sections

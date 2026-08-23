@@ -7,20 +7,27 @@ const baseFields = [
         options: [
             { text: "Textbox", value: "textbox" },
             { text: "Textarea", value: "textarea" },
-            { text: "Numeric Textbox (Zipcodes, etc.)", value: "numerictextbox" },
+            { text: "Integer", value: "integer" },
+            { text: "Numeric Textbox", value: "numerictextbox" },
             { text: "Checkbox", value: "checkbox" },
             { text: "Select", value: "select" },
             { text: "List", value: "list" },
+            { text: "Date", value: "date" },
         ],
+        defaultValue: {
+            if: [
+                { "==": [{ "var": "required" }, true] },
+            ], then: "checkbox", else: "list"
+        },
     },
     {
         type: "textbox",
         name: "name",
-        label: "Name",
+        label: "Name / Key (avoid spaces)",
         required: true,
         minLength: 1,
         maxLength: 50,
-        value: "newField"
+        defaultValue: 'newField',
     },
     {
         type: "textbox",
@@ -29,31 +36,45 @@ const baseFields = [
         required: true,
         minLength: 1,
         maxLength: 50,
-        value: "New Field"
+        defaultValue: {
+            if: [
+                { "==": [{ "var": "type" }, 'checkbox'] },
+            ],
+            then: "New Checkbox",
+            elseif: [
+                {
+                    if: [
+                        { "==": [{ "var": "type" }, 'textbox'] },
+                    ],
+                    then: "New Textbox",
+                }
+            ],
+            else: "New Something Else"
+        },
     },
     {
         type: "checkbox",
         name: "required",
         label: "Required",
-        value: true,
+        defaultValue: true,
     },
     {
         type: "checkbox",
         name: "visible",
         label: "Visible",
-        value: true,
+        defaultValue: true,
     },
     {
         type: "checkbox",
         name: "disabled",
         label: "Disabled",
-        value: false
+        defaultValue: false
     }
 ];
 const checkboxFields = [];
 const textboxFields = [
     {
-        type: "textbox",
+        type: 'textbox',
         name: "value",
         label: "Default Value",
         minLength: 1,
@@ -75,11 +96,22 @@ const textboxFields = [
         label: "Placeholder",
         minLength: 1,
         maxLength: 50,
+        defaultValue: {
+            if: [
+                {
+                    "or": [
+                        { "==": [{ "var": "type" }, "textbox"] },
+                        { "==": [{ "var": "type" }, "integer"] },
+                    ]
+                }
+            ], then: "test", else: "test2"
+        },
         visible: [
             {
                 "or": [
                     { "==": [{ "var": "type" }, "textbox"] },
                     { "==": [{ "var": "type" }, "textarea"] },
+                    { "==": [{ "var": "type" }, "integer"] },
                     { "==": [{ "var": "type" }, "numerictextbox"] },
                 ]
             }
@@ -126,13 +158,18 @@ const selectFields = [
         ],
     },
 ];
-const listFields = [
+const minAndMax = [
     {
         type: "integer",
         name: "min",
         label: "Min",
         visible: [
-            { "==": [{ "var": "type" }, "list"] },
+            {
+                "or": [
+                    { "==": [{ "var": "type" }, "integer"] },
+                    { "==": [{ "var": "type" }, "list"] },
+                ]
+            }
         ]
     },
     {
@@ -140,11 +177,16 @@ const listFields = [
         name: "max",
         label: "Max",
         visible: [
-            { "==": [{ "var": "type" }, "list"] },
+            {
+                "or": [
+                    { "==": [{ "var": "type" }, "integer"] },
+                    { "==": [{ "var": "type" }, "list"] },
+                ]
+            }
         ]
     },
 ];
 const formBuilderConfig = {
     title: "Form Builder",
-    fields: [...baseFields, ...textboxFields, ...checkboxFields, ...selectFields, ...listFields]
+    fields: [...baseFields, ...textboxFields, ...checkboxFields, ...selectFields, ...minAndMax]
 };

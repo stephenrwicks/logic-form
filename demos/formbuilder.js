@@ -7,7 +7,7 @@ htmlDiv.style.gridColumn = 'span 2';
 const update = () => {
     const formBuilderValue = formBuilder.getValue();
     sampleForm.setConfig({
-        title: 'Sample form',
+        title: 'Generated Form',
         fields: [
             formBuilderValue
         ]
@@ -18,7 +18,7 @@ fields: [${JSON.stringify(formBuilderValue, null, 4)}]
 '></logic-form>`;
 };
 formBuilder.addEventListener('logic-form-update', update);
-const sampleForm = new LogicForm({ title: 'Sample form', fields: [] });
+const sampleForm = new LogicForm({ title: 'Generated Form', fields: [] });
 sampleForm.id = 'sample-form';
 sampleForm.dataset.theme = 'green';
 const grid = document.createElement('div');

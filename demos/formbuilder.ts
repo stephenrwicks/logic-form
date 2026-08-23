@@ -9,7 +9,7 @@ const update = () => {
     // Is only one field at the moment but with repeatable sections this could be Field[]
     const formBuilderValue = formBuilder.getValue() as Field;
     sampleForm.setConfig({
-        title: 'Sample form',
+        title: 'Generated Form',
         fields: [
             formBuilderValue
         ]
@@ -20,7 +20,7 @@ fields: [${JSON.stringify(formBuilderValue, null, 4)}]
 '></logic-form>`;
 };
 formBuilder.addEventListener('logic-form-update', update);
-const sampleForm = new LogicForm({ title: 'Sample form', fields: [] });
+const sampleForm = new LogicForm({ title: 'Generated Form', fields: [] });
 sampleForm.id = 'sample-form';
 sampleForm.dataset.theme = 'green';
 const grid = document.createElement('div');

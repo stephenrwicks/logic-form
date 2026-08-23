@@ -33,6 +33,22 @@ class LogicForm extends HTMLElement {
     #isVarRef(val) {
         return !!val && typeof val === 'object' && 'var' in val && typeof val.var === 'string';
     }
+    #isRuleWithReturnValue(val) {
+        return !!val && typeof val === 'object' && 'if' in val && 'then' in val && typeof val.if === 'object';
+    }
+    #resolveRuleWithReturnValue(rule) {
+        const thenResult = this.#evaluateBooleanProperty(rule.if, false);
+        if (thenResult)
+            return rule.then;
+        if (Array.isArray(rule.elseif)) {
+            for (const elseifRule of rule.elseif) {
+                const elseifResult = this.#evaluateBooleanProperty(elseifRule.if, false);
+                if (elseifResult)
+                    return elseifRule.then;
+            }
+        }
+        return rule.else ?? '';
+    }
     #isFlatStringArrayEqual(array1, array2) {
         array1 = [...new Set(array1)].toSorted();
         array2 = [...new Set(array2)].toSorted();
@@ -74,7 +90,9 @@ class LogicForm extends HTMLElement {
         let getValue;
         let setValue;
         let setRequired;
+        let setDefaultValue;
         let eventToListenFor = 'change';
+        const whiteSpaceBlocker = () => input.setCustomValidity(!!getValue() ? '' : 'This field is required.');
         this.#fixMinMax(f);
         if (f.type === 'textbox' || f.type === 'textarea' || f.type === 'numerictextbox') {
             eventToListenFor = 'input';
@@ -83,8 +101,6 @@ class LogicForm extends HTMLElement {
                 input.type = 'text';
             input.id = id;
             input.name = f.name;
-            if (f.value)
-                input.defaultValue = f.value ?? '';
             if (f.placeholder)
                 input.placeholder = f.placeholder;
             if (f.maxLength && this.#isInteger(f.maxLength))
@@ -93,10 +109,20 @@ class LogicForm extends HTMLElement {
                 input.minLength = f.minLength;
             div.replaceChildren(label, input);
             getValue = () => input.value.trim();
+            setDefaultValue = () => {
+                if (typeof f.defaultValue === 'string' || typeof f.defaultValue === 'number') {
+                    input.defaultValue = String(f.defaultValue);
+                }
+                else if (this.#isRuleWithReturnValue(f.defaultValue)) {
+                    input.defaultValue = String(this.#resolveRuleWithReturnValue(f.defaultValue));
+                }
+                else {
+                    input.defaultValue = '';
+                }
+            };
             setValue = (val) => {
                 input.value = typeof val === 'string' ? val.trim() : '';
             };
-            const whiteSpaceBlocker = () => input.setCustomValidity(!!getValue() ? '' : 'This field is required.');
             setRequired = (bool) => {
                 input.required = !!bool;
                 if (!!bool)
@@ -121,7 +147,9 @@ class LogicForm extends HTMLElement {
             input.id = id;
             input.name = f.name;
             input.type = 'checkbox';
-            input.defaultChecked = !!f.value;
+            setDefaultValue = () => {
+                input.defaultChecked = !!f.defaultValue;
+            };
             const wrapperSpan = document.createElement('span');
             wrapperSpan.replaceChildren(labelSpan, requiredSpan);
             label.replaceChildren(input, wrapperSpan);
@@ -140,8 +168,8 @@ class LogicForm extends HTMLElement {
             input.placeholder = f.placeholder ?? '';
             const hasMin = this.#isNumeric(f.min);
             const hasMax = this.#isNumeric(f.max);
-            if (this.#isNumeric(f.value)) {
-                input.defaultValue = String(f.value);
+            if (this.#isNumeric(f.defaultValue)) {
+                input.defaultValue = String(f.defaultValue);
             }
             if (hasMin && hasMax && f.min > f.max) {
                 f.max = f.min;
@@ -194,11 +222,23 @@ class LogicForm extends HTMLElement {
                 if (typeof option.value === 'undefined') {
                     throw new Error(`select ${f.name} has an option with no value`);
                 }
-                const selected = option.value === f.value && validValues.has(f.value);
-                input.add(new Option(option.text, option.value, selected, selected));
+                input.add(new Option(option.text, option.value));
             }
             div.replaceChildren(label, input);
             getValue = () => validValues.has(input.value) ? input.value : '';
+            setDefaultValue = () => {
+                if (typeof f.defaultValue === 'string') {
+                    for (const option of input.options) {
+                        option.defaultSelected = option.value === f.defaultValue && validValues.has(f.defaultValue);
+                    }
+                }
+                else if (this.#isRuleWithReturnValue(f.defaultValue)) {
+                    const resolved = String(this.#resolveRuleWithReturnValue(f.defaultValue));
+                    for (const option of input.options) {
+                        option.defaultSelected = option.value === resolved && validValues.has(resolved);
+                    }
+                }
+            };
             setValue = (val) => {
                 if (!validValues.has(val))
                     return;
@@ -208,7 +248,7 @@ class LogicForm extends HTMLElement {
         }
         else if (f.type === 'checkboxgroup') {
             const validValues = new Set(f.options.map(o => o.value));
-            const defaultSelectedValues = new Set(f.value ?? []);
+            const defaultSelectedValues = new Set(f.defaultValue ?? []);
             input = document.createElement('fieldset');
             input.id = id;
             const legend = document.createElement('legend');
@@ -225,7 +265,6 @@ class LogicForm extends HTMLElement {
                 checkbox.type = 'checkbox';
                 checkbox.name = f.name;
                 checkbox.value = o.value;
-                checkbox.defaultChecked = defaultSelectedValues.has(o.value);
                 input.append(label);
                 return checkbox;
             });
@@ -267,6 +306,11 @@ class LogicForm extends HTMLElement {
                     checkboxes[0].setCustomValidity('');
             };
             input.addEventListener('change', minMax);
+            setDefaultValue = () => {
+                for (const checkbox of checkboxes) {
+                    checkbox.defaultChecked = defaultSelectedValues.has(checkbox.value);
+                }
+            };
             getValue = () => checkboxes.filter(c => c.checked && validValues.has(c.value)).map(c => c.value);
             setValue = (val = []) => {
                 const set = new Set(val.filter(v => validValues.has(v)));
@@ -304,12 +348,16 @@ class LogicForm extends HTMLElement {
                 radio.type = 'radio';
                 radio.name = f.name;
                 radio.value = o.value;
-                radio.defaultChecked = o.value === f.value;
                 input.append(label);
                 return radio;
             });
             input.append(clearButton);
             getValue = () => radios.find(r => r.checked && validValues.has(r.value))?.value ?? '';
+            setDefaultValue = () => {
+                for (const radio of radios) {
+                    radio.defaultChecked = radio.value === f.defaultValue;
+                }
+            };
             setValue = (val) => {
                 for (const radio of radios) {
                     radio.checked = val === radio.value && validValues.has(val);
@@ -388,7 +436,7 @@ class LogicForm extends HTMLElement {
                 return val;
             };
             setValue = (val) => {
-                val = val.filter(str => typeof str === 'string' && !!str.trim());
+                val = Array.isArray(val) ? val.filter(str => typeof str === 'string' && !!str.trim()) : [];
                 for (const item of listItems)
                     item.remove();
                 if (val.length > max)
@@ -414,13 +462,23 @@ class LogicForm extends HTMLElement {
                 }
                 addItemButton.disabled = isAtMax;
             });
-            setValue(Array.isArray(f.value) ? f.value : []);
+            setValue(Array.isArray(f.defaultValue) ? f.defaultValue : []);
         }
         else if (f.type === 'date') {
             input = document.createElement('input');
             input.type = 'date';
             input.id = id;
-            input.value = f.value ?? '';
+            setDefaultValue = () => {
+                if (typeof f.defaultValue === 'string') {
+                    input.defaultValue = f.defaultValue;
+                }
+                else if (this.#isRuleWithReturnValue(f.defaultValue)) {
+                    input.defaultValue = String(this.#resolveRuleWithReturnValue(f.defaultValue));
+                }
+                else {
+                    input.defaultValue = '';
+                }
+            };
             input.name = f.name;
             if (f.min)
                 input.min = f.min;
@@ -478,11 +536,11 @@ class LogicForm extends HTMLElement {
                 return div;
             },
             updateState() {
-                _visible = cl.#evaluateProperty(f.visible, true);
-                _disabled = cl.#evaluateProperty(f.disabled, false);
-                _required = cl.#evaluateProperty(f.required, false);
+                _visible = cl.#evaluateBooleanProperty(f.visible, true);
+                _disabled = cl.#evaluateBooleanProperty(f.disabled, false);
+                _required = cl.#evaluateBooleanProperty(f.required, false);
+                setDefaultValue?.();
                 if (_visible) {
-                    div.style.display = '';
                     input.disabled = false || _disabled;
                 }
                 else {
@@ -515,6 +573,13 @@ class LogicForm extends HTMLElement {
         if (isStable) {
             console.info(`Updated the form state in ${this.#updatePasses} ${this.#updatePasses > 1 ? 'passes' : 'pass'}.`);
             this.#updatePasses = 0;
+            const fragment = new DocumentFragment();
+            for (const f of this.#config.fields) {
+                if (this.#fields[f.name].visible) {
+                    fragment.append(this.#fields[f.name].el);
+                }
+            }
+            this.form.replaceChildren(this.#titleEl, fragment, this.#buttonRow);
             return;
         }
         this.#update();
@@ -533,15 +598,15 @@ class LogicForm extends HTMLElement {
         }
         return true;
     }
-    #evaluateProperty(propertyVal, defaultValue) {
+    #evaluateBooleanProperty(propertyVal, defaultValue) {
         if (typeof propertyVal === 'boolean')
             return propertyVal;
         if (Array.isArray(propertyVal))
-            return propertyVal.every(rule => this.#evaluateRule(rule));
+            return propertyVal.every(rule => this.#evaluateBooleanRule(rule));
         return defaultValue;
     }
     ;
-    #evaluateRule(rule) {
+    #evaluateBooleanRule(rule) {
         if ('==' in rule) {
             const [left, right] = rule['=='];
             const side1 = this.#readRuleSide(left);
@@ -574,14 +639,18 @@ class LogicForm extends HTMLElement {
             const [left, right] = rule['<='];
             return this.#readRuleSide(left) <= this.#readRuleSide(right);
         }
+        if ('in' in rule) {
+            const [left, right] = rule['in'];
+            return this.#readRuleSide(left) <= this.#readRuleSide(right);
+        }
         if ('not' in rule) {
-            return this.#evaluateRule(rule.not) === false;
+            return this.#evaluateBooleanRule(rule.not) === false;
         }
         if ('and' in rule) {
-            return rule.and.every((r) => this.#evaluateRule(r));
+            return rule.and.every((r) => this.#evaluateBooleanRule(r));
         }
         if ('or' in rule) {
-            return rule.or.some((r) => this.#evaluateRule(r));
+            return rule.or.some((r) => this.#evaluateBooleanRule(r));
         }
         return true;
     }
@@ -657,7 +726,8 @@ class LogicForm extends HTMLElement {
     }
     mergeValue(val) {
         for (const key in val) {
-            this.#fields[key].value = val[key];
+            if (key in this.#fields)
+                this.#fields[key].value = val[key];
         }
         this.#dispatchUpdateEvent('mergeValue');
     }
@@ -693,8 +763,6 @@ class LogicForm extends HTMLElement {
     }
     setConfig(config) {
         this.#config = config;
-        this.form.replaceChildren();
-        this.form.append(this.#titleEl);
         this.#titleEl.textContent = config.title?.trim() ?? '';
         this.#fields = {};
         this.#valueGetterObject = Object.create(null);
@@ -709,9 +777,7 @@ class LogicForm extends HTMLElement {
                 },
                 enumerable: true,
             });
-            this.form.append(fieldInternal.el);
         }
-        this.form.append(this.#buttonRow);
         this.#update();
         this.#dispatchUpdateEvent('setConfig');
     }
