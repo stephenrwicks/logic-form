@@ -1,11 +1,28 @@
 logic-form {
 
-    --primary: #3e297a;
-    --secondary: #00d0d0;
-    --gray: color-mix(in oklch, gray 35%, var(--primaryLight) 65%);
+
+
+    --column-width: 20rem;
+
+    --primary: rgb(10, 0, 102);
+    --secondary: rgb(26, 26, 82);
     --danger: red;
 
+    &[data-theme="purple"] {
+        --primary: #3e297a;
+        --secondary: #00d0d0;
+        --danger: red;
+    }
+
+    &[data-theme="green"] {
+        --primary: forestgreen;
+        --secondary: #31d000;
+        --danger: red;
+    }
+
+
     --white: color-mix(in oklch, white 97%, var(--primary) 3%);
+    --gray: color-mix(in oklch, gray 35%, var(--primaryLight) 65%);
     --black: color-mix(in oklch, black 75%, var(--primary) 25%);
     --primaryLightest: color-mix(in oklch, white 94%, var(--primary) 6%);
     --primaryLighter: color-mix(in oklch, white 90%, var(--primary) 10%);
@@ -19,17 +36,21 @@ logic-form {
     --secondaryDarker: color-mix(in oklch, black 50%, var(--secondary) 50%);
 
     --border: 1px solid var(--primary);
-    --borderDanger: 1px solid var(--danger);
+    /* --borderDanger: 1px solid var(--danger);
     --boxShadow: 0px 0px .5em var(--primaryLight);
-    --boxShadow: 0px 0px 1rem color-mix(in oklch, gray 35%, var(--primaryLight) 65%);
+    --boxShadow: 0px 0px 1rem color-mix(in oklch, gray 35%, var(--primaryLight) 65%); */
     --borderRadius: 0;
 
-    display: contents;
-    font: normal 14px Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif;
+    font: normal .875rem Segoe UI,
+    Roboto,
+    Helvetica Neue,
+    Arial,
+    sans-serif;
     color: var(--black);
     box-sizing: border-box;
     interpolate-size: allow-keywords;
     accent-color: var(--secondary);
+    display: contents;
 
     * {
         font: inherit;
@@ -50,29 +71,31 @@ logic-form {
     }
 
     >form {
-        --column-width: 20rem;
+
         display: grid;
+        height: fit-content;
         grid-template-columns: repeat(auto-fit, minmax(var(--column-width), 1fr));
-        width: clamp(50vw, 60rem, 100%);
+        width: clamp(40vw, 60em, 100%);
         row-gap: 1.5rem;
         column-gap: 2rem;
         padding: 1rem;
+        outline: 1px solid var(--gray);
 
-        div:has(button[type="submit"]) {
+        >div:has(button[type="submit"]) {
             grid-column: 1/-1;
             margin-top: 1rem;
+            justify-self: end;
             display: flex;
-            justify-content: end;
             gap: .6rem;
         }
     }
 
     form>p {
-
+        grid-column: 1/-1;
         line-height: 1.6;
         text-wrap: balance;
         text-wrap: pretty;
-        grid-column: 1/-1;
+
     }
 
     label {
@@ -81,7 +104,9 @@ logic-form {
         margin-bottom: .2em;
     }
 
+    /* Required span */
     label>span:nth-of-type(2),
+    label>span>span:nth-of-type(2),
     legend>span {
         color: var(--danger);
     }
@@ -91,6 +116,7 @@ logic-form {
         width: 100%;
         margin: 0;
         display: grid;
+        align-self: end;
         align-items: center;
         justify-items: start;
         grid-template-columns: min-content 1fr;
@@ -105,12 +131,19 @@ logic-form {
             background-color: var(--primaryLighter);
         }
 
+        &:has(:disabled) {
+            cursor: default;
+            background-color: revert;
+            &:hover {
+                background-color: revert;
+            }
+        }
+
         /* Disabled fieldset instead of disabled inputs */
         &:where(fieldset:disabled label:has(input[type="radio"])),
         &:where(fieldset:disabled label:has(input[type="checkbox"])) {
             cursor: default;
             background-color: revert;
-
             &:hover {
                 background-color: revert;
             }
@@ -131,7 +164,9 @@ logic-form {
 
     button,
     select,
-    input:not([type="checkbox"], [type="radio"]),
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
     textarea {
 
         display: block;
@@ -153,13 +188,15 @@ logic-form {
             border-color: var(--secondary);
         }
 
-        &:not(button) {
-            &:focus-visible,
-            &:focus {
-                box-shadow: 0px 0px 0px 1px inset var(--secondary);
-                border-color: var(--secondary);
+        &:focus-visible,
+        &:focus {
+            box-shadow: 0px 0px 0px 1px inset var(--secondary);
+            border-color: var(--secondary);
+
+            &:not(button) {
                 background-color: var(--white);
             }
+
         }
 
         &:where(button) {
@@ -184,18 +221,17 @@ logic-form {
             cursor: pointer;
         }
 
+        &:where(textarea) {
+            min-height: 6rem;
+            max-height: 14rem;
+            resize: vertical;
 
-    }
-
-    textarea {
-        min-height: 6rem;
-        max-height: 14rem;
-        resize: vertical;
-
-        &:focus-visible {
-            background-color: var(--white);
+            &:focus-visible {
+                background-color: var(--white);
+            }
         }
     }
+
 
     fieldset {
         padding: .5rem 0;
