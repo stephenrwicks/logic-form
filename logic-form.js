@@ -36,19 +36,6 @@ class LogicForm extends HTMLElement {
     #isRuleWithReturnValue(val) {
         return !!val && typeof val === 'object' && 'if' in val && 'then' in val && typeof val.if === 'object';
     }
-    #resolveRuleWithReturnValue(rule) {
-        const thenResult = this.#evaluateBooleanProperty(rule.if, false);
-        if (thenResult)
-            return rule.then;
-        if (Array.isArray(rule.elseif)) {
-            for (const elseifRule of rule.elseif) {
-                const elseifResult = this.#evaluateBooleanProperty(elseifRule.if, false);
-                if (elseifResult)
-                    return elseifRule.then;
-            }
-        }
-        return rule.else ?? '';
-    }
     #isFlatStringArrayEqual(array1, array2) {
         array1 = [...new Set(array1)].toSorted();
         array2 = [...new Set(array2)].toSorted();
@@ -236,6 +223,9 @@ class LogicForm extends HTMLElement {
                     const resolved = String(this.#resolveRuleWithReturnValue(f.defaultValue));
                     for (const option of input.options) {
                         option.defaultSelected = option.value === resolved && validValues.has(resolved);
+                    }
+                    if (!internals.isTouched) {
+                        console.log('aaa');
                     }
                 }
             };
@@ -502,12 +492,17 @@ class LogicForm extends HTMLElement {
         input.addEventListener(eventToListenFor, () => {
             this.#update();
             this.#dispatchUpdateEvent(input);
+            _isTouched = true;
         });
+        let _isTouched = false;
         let _visible = true;
         let _disabled = false;
         let _required = false;
         const cl = this;
         const internals = {
+            get isTouched() {
+                return _isTouched;
+            },
             get type() {
                 return f.type;
             },
@@ -544,7 +539,6 @@ class LogicForm extends HTMLElement {
                     input.disabled = false || _disabled;
                 }
                 else {
-                    div.style.display = 'none';
                 }
                 requiredSpan.style.display = _required ? '' : 'none';
                 setRequired(_required);
@@ -562,7 +556,14 @@ class LogicForm extends HTMLElement {
         return '';
     }
     #updatePasses = 0;
+    #visibilityMemo = null;
     #update() {
+        if (this.#visibilityMemo === null) {
+            this.#visibilityMemo = {};
+            for (const f of Object.values(this.#fields)) {
+                this.#visibilityMemo[f.name] = f.visible;
+            }
+        }
         const oldSnapshot = this.getValue();
         for (const f of Object.values(this.#fields)) {
             f.updateState();
@@ -570,19 +571,30 @@ class LogicForm extends HTMLElement {
         const newSnapshot = this.getValue();
         const isStable = this.#isSnapshotEqual(oldSnapshot, newSnapshot);
         this.#updatePasses += 1;
-        if (isStable) {
-            console.info(`Updated the form state in ${this.#updatePasses} ${this.#updatePasses > 1 ? 'passes' : 'pass'}.`);
-            this.#updatePasses = 0;
-            const fragment = new DocumentFragment();
-            for (const f of this.#config.fields) {
-                if (this.#fields[f.name].visible) {
-                    fragment.append(this.#fields[f.name].el);
-                }
-            }
-            this.form.replaceChildren(this.#titleEl, fragment, this.#buttonRow);
+        if (!isStable) {
+            this.#update();
             return;
         }
-        this.#update();
+        console.info(`Updated the form state in ${this.#updatePasses} ${this.#updatePasses > 1 ? 'passes' : 'pass'}.`);
+        const renderer = (el) => {
+        };
+        let latestVisibleItem = null;
+        for (const f of Object.values(this.#fields)) {
+            const wasVisibleBefore = this.#visibilityMemo[f.name];
+            const isVisibleNow = this.#fields[f.name].visible;
+            const hasChangedVisibility = wasVisibleBefore !== isVisibleNow;
+            if (isVisibleNow) {
+                if (hasChangedVisibility) {
+                    latestVisibleItem ? latestVisibleItem.after(f.el) : this.form.append(f.el);
+                }
+                latestVisibleItem = f.el;
+            }
+            else {
+                f.el.remove();
+            }
+        }
+        this.#updatePasses = 0;
+        this.#visibilityMemo = null;
     }
     #isSnapshotEqual(oldSnapshot, newSnapshot) {
         if (Object.keys(oldSnapshot).length !== Object.keys(newSnapshot).length)
@@ -598,11 +610,26 @@ class LogicForm extends HTMLElement {
         }
         return true;
     }
+    #resolveRuleWithReturnValue(rule) {
+        const thenResult = this.#evaluateBooleanProperty(rule.if, false);
+        if (thenResult)
+            return rule.then;
+        if (Array.isArray(rule.elseif)) {
+            for (const elseifRule of rule.elseif) {
+                const elseifResult = this.#evaluateBooleanProperty(elseifRule.if, false);
+                if (elseifResult)
+                    return elseifRule.then;
+            }
+        }
+        return rule.else ?? '';
+    }
     #evaluateBooleanProperty(propertyVal, defaultValue) {
         if (typeof propertyVal === 'boolean')
             return propertyVal;
         if (Array.isArray(propertyVal))
             return propertyVal.every(rule => this.#evaluateBooleanRule(rule));
+        if (typeof propertyVal === 'object' && !!propertyVal)
+            return this.#evaluateBooleanRule(propertyVal);
         return defaultValue;
     }
     ;
@@ -766,6 +793,8 @@ class LogicForm extends HTMLElement {
         this.#titleEl.textContent = config.title?.trim() ?? '';
         this.#fields = {};
         this.#valueGetterObject = Object.create(null);
+        this.form.replaceChildren();
+        this.form.append(this.#titleEl);
         for (const f of config.fields ?? []) {
             const fieldInternal = this.#buildField(f);
             Object.defineProperty(this.#valueGetterObject, f.name, {
@@ -777,7 +806,9 @@ class LogicForm extends HTMLElement {
                 },
                 enumerable: true,
             });
+            this.form.append(fieldInternal.el);
         }
+        this.form.append(this.#buttonRow);
         this.#update();
         this.#dispatchUpdateEvent('setConfig');
     }

@@ -1,5 +1,204 @@
 
-const formBuilder = new LogicForm(formBuilderConfig);
+const formBuilder = new LogicForm({
+    title: 'Form Builder',
+    fields: [
+        {
+            type: 'select',
+            name: 'type',
+            label: 'Field Type',
+            options: [
+                { text: 'Textbox', value: 'textbox' },
+                { text: 'Textarea', value: 'textarea' },
+                { text: 'Integer', value: 'integer' },
+                { text: 'Numeric Textbox', value: 'numerictextbox' },
+                { text: 'Checkbox', value: 'checkbox' },
+                { text: 'Select', value: 'select' },
+                { text: 'List', value: 'list' },
+                { text: 'Date', value: 'date' },
+            ],
+            defaultValue: {
+                if: [
+                    { '==': [{ 'var': 'required' }, false] },
+                    // 'list' is not being selected but checkbox is. Maybe something weird with default selected options.
+                ], then: 'checkbox', else: 'list'
+            },
+        },
+        {
+            type: 'textbox',
+            name: 'name',
+            label: 'Name / Key (avoid spaces)',
+            required: true,
+            minLength: 1,
+            maxLength: 50,
+            defaultValue: 'newField',
+        },
+        {
+            type: 'textbox',
+            name: 'label',
+            label: 'Label',
+            required: true,
+            minLength: 1,
+            maxLength: 50,
+            defaultValue: {
+                if: { '==': [{ 'var': 'type' }, 'textbox'] },
+                then: 'New Textbox',
+                elseif: [
+                    {
+                        if: { '==': [{ 'var': 'type' }, 'checkbox'] },
+                        then: 'New Checkbox',
+                    },
+                    {
+                        if: { '==': [{ 'var': 'type' }, 'textarea'] },
+                        then: 'New Textarea',
+                    },
+                    {
+                        if: { '==': [{ 'var': 'type' }, 'integer'] },
+                        then: 'New Integer',
+                    },
+                    {
+                        if: { '==': [{ 'var': 'type' }, 'numerictextbox'] },
+                        then: 'New Numeric Textbox',
+                    },
+                    {
+                        if: { '==': [{ 'var': 'type' }, 'select'] },
+                        then: 'New Select',
+                    },
+                    {
+                        if: { '==': [{ 'var': 'type' }, 'list'] },
+                        then: 'New List',
+                    }
+                ],
+                else: 'New Thing'
+            },
+        },
+        // These next three should be able to toggle between a boolean or some kind of Rule subform.
+        // Maybe we use a radiogroup to toggle between them.
+        {
+            type: 'checkbox',
+            name: 'required',
+            label: 'Required',
+            defaultValue: true,
+        },
+        {
+            type: 'checkbox',
+            name: 'visible',
+            label: 'Visible',
+            defaultValue: true,
+        },
+        {
+            type: 'checkbox',
+            name: 'disabled',
+            label: 'Disabled',
+            defaultValue: false
+        },
+        {
+            // Type is mad here because ifRule hasn't resolved
+            //type: { if: [{ '==': [{ 'var': 'type' }, 'checkbox'] }], then: 'checkbox', else: 'textbox' },
+            // Suppose a rule can return anything. Then we return an entire config, or even form
+            type: 'textbox',
+            name: 'defaultValue',
+            label: 'Default Value',
+            minLength: 1,
+            maxLength: 50,
+            visible: {
+                'or':
+                    [
+                        { '==': [{ 'var': 'type' }, 'textbox'] },
+                        { '==': [{ 'var': 'type' }, 'textarea'] },
+                        { '==': [{ 'var': 'type' }, 'numerictextbox'] },
+                        { '==': [{ 'var': 'type' }, 'checkbox'] },
+                    ]
+            }
+        },
+        {
+            type: 'textbox',
+            name: 'placeholder',
+            label: 'Placeholder',
+            minLength: 1,
+            maxLength: 50,
+            defaultValue: {
+                if: {
+                    'or':
+                        [
+                            { '==': [{ 'var': 'type' }, 'textbox'] },
+                            { '==': [{ 'var': 'type' }, 'integer'] },
+                        ]
+                }, then: 'test', else: 'test2'
+            },
+            visible:
+            {
+                'or':
+                    [
+                        { '==': [{ 'var': 'type' }, 'textbox'] },
+                        { '==': [{ 'var': 'type' }, 'textarea'] },
+                        { '==': [{ 'var': 'type' }, 'integer'] },
+                        { '==': [{ 'var': 'type' }, 'numerictextbox'] },
+                    ]
+            }
+
+        },
+        {
+            type: 'integer',
+            name: 'minLength',
+            label: 'Min Length',
+            visible: {
+                'or':
+                    [
+                        { '==': [{ 'var': 'type' }, 'textbox'] },
+                        { '==': [{ 'var': 'type' }, 'textarea'] },
+                        { '==': [{ 'var': 'type' }, 'numerictextbox'] },
+                    ]
+            }
+        },
+        {
+            type: 'integer',
+            name: 'maxLength',
+            label: 'Max Length',
+            visible: {
+                'or':
+                    [
+                        { '==': [{ 'var': 'type' }, 'textbox'] },
+                        { '==': [{ 'var': 'type' }, 'textarea'] },
+                        { '==': [{ 'var': 'type' }, 'numerictextbox'] },
+                    ]
+            }
+        },
+        {
+            type: 'list',
+            name: 'options',
+            label: 'Options',
+            min: 1,
+            max: 5,
+            visible: { '==': [{ 'var': 'type' }, 'select'] },
+        },
+        {
+            type: 'integer',
+            name: 'min',
+            label: 'Min',
+            visible: {
+                'or':
+                    [
+                        { '==': [{ 'var': 'type' }, 'integer'] },
+                        { '==': [{ 'var': 'type' }, 'list'] },
+                    ]
+            }
+        },
+        {
+            type: 'integer',
+            name: 'max',
+            label: 'Max',
+            visible: {
+                'or':
+                    [
+                        { '==': [{ 'var': 'type' }, 'integer'] },
+                        { '==': [{ 'var': 'type' }, 'list'] },
+                    ]
+            }
+        },
+    ]
+});
+
+
 const pre = document.createElement('pre');
 const htmlDiv = document.createElement('div');
 htmlDiv.replaceChildren('Use this HTML to generate the above sample form: ', pre);
@@ -14,8 +213,8 @@ const update = () => {
             formBuilderValue
         ]
     });
-    pre.innerText = `<logic-form data-theme="green" data-config='{
-title: "Sample Form", 
+    pre.innerText = `<logic-form data-theme='green' data-config='{
+title: 'Sample Form', 
 fields: [${JSON.stringify(formBuilderValue, null, 4)}]
 '></logic-form>`;
 };

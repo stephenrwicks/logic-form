@@ -48,20 +48,6 @@ class LogicForm extends HTMLElement {
         return !!val && typeof val === 'object' && 'if' in val && 'then' in val && typeof val.if === 'object';
     }
 
-    /**
-        Parse if / else if / else from JSON and return the value
-     */
-    #resolveRuleWithReturnValue(rule: RuleWithReturnValue): Value {
-        const thenResult = this.#evaluateBooleanProperty(rule.if, false);
-        if (thenResult) return rule.then;
-        if (Array.isArray(rule.elseif)) {
-            for (const elseifRule of rule.elseif) {
-                const elseifResult = this.#evaluateBooleanProperty(elseifRule.if, false);
-                if (elseifResult) return elseifRule.then;
-            }
-        }
-        return rule.else ?? '';
-    }
 
     #isFlatStringArrayEqual(array1: string[], array2: string[]) {
         // Compare string value arrays for checkbox groups, etc. We don't care about order so we sort it first
@@ -270,6 +256,9 @@ class LogicForm extends HTMLElement {
                     const resolved = String(this.#resolveRuleWithReturnValue(f.defaultValue));
                     for (const option of (input as HTMLSelectElement).options) {
                         option.defaultSelected = option.value === resolved && validValues.has(resolved);
+                    }
+                    if (!internals.isTouched) {
+                        console.log('aaa');
                     }
                 }
             };
@@ -558,8 +547,10 @@ class LogicForm extends HTMLElement {
         input.addEventListener(eventToListenFor, () => {
             this.#update();
             this.#dispatchUpdateEvent(input);
+            _isTouched = true;
         });
 
+        let _isTouched = false;
         let _visible = true;
         let _disabled = false;
         let _required = false;
@@ -567,6 +558,9 @@ class LogicForm extends HTMLElement {
 
         const cl = this;
         const internals: FieldInternal = {
+            get isTouched() {
+                return _isTouched;
+            },
             get type() {
                 return f.type;
             },
@@ -597,15 +591,6 @@ class LogicForm extends HTMLElement {
             },
             updateState() {
 
-                //const newVisible = cl.#evaluateBooleanProperty(f.visible, true);
-                // if (_visible !== newVisible) {
-                //     if (newVisible) {
-
-                //     }
-                //     else {
-
-                //     }
-                // }
                 _visible = cl.#evaluateBooleanProperty(f.visible, true);
                 _disabled = cl.#evaluateBooleanProperty(f.disabled, false);
                 _required = cl.#evaluateBooleanProperty(f.required, false);
@@ -617,7 +602,7 @@ class LogicForm extends HTMLElement {
                     //div.style.height = '';
                 }
                 else {
-                    div.style.display = 'none';
+                    //div.style.display = 'none';
                     //div.style.height = '0px';
                 }
                 requiredSpan.style.display = _required ? '' : 'none';
@@ -643,7 +628,14 @@ class LogicForm extends HTMLElement {
      * e.g. updating hidden fields might change the value and require rules to be checked again
      * **/
     #updatePasses = 0;
+    #visibilityMemo: Record<string, boolean> | null = null;
     #update(): void {
+        if (this.#visibilityMemo === null) {
+            this.#visibilityMemo = {};
+            for (const f of Object.values(this.#fields)) {
+                this.#visibilityMemo[f.name] = f.visible;
+            }
+        }
         const oldSnapshot = this.getValue();
         for (const f of Object.values(this.#fields)) {
             f.updateState();
@@ -651,20 +643,41 @@ class LogicForm extends HTMLElement {
         const newSnapshot = this.getValue();
         const isStable = this.#isSnapshotEqual(oldSnapshot, newSnapshot);
         this.#updatePasses += 1;
-        if (isStable) {
-            console.info(`Updated the form state in ${this.#updatePasses} ${this.#updatePasses > 1 ? 'passes' : 'pass'}.`);
-            this.#updatePasses = 0;
-            const fragment = new DocumentFragment();
-            for (const f of this.#config.fields) {
-                if (this.#fields[f.name].visible) {
-                    fragment.append(this.#fields[f.name].el);
-                }
-            }
-            this.form.replaceChildren(this.#titleEl, fragment, this.#buttonRow);
+
+        if (!isStable) {
+            // Update again
+            this.#update();
             return;
         }
-        // Update again
-        this.#update();
+
+        console.info(`Updated the form state in ${this.#updatePasses} ${this.#updatePasses > 1 ? 'passes' : 'pass'}.`);
+
+        const renderer = (el: HTMLDivElement) => {
+
+        };
+
+        // We are dynamically adding and removing items from the DOM.
+        // Use visibilityMemo to check if the visibility actually changed.
+        // Keep track of the latest visible item to always append them in order (append after the last visible one)
+        // Doing something like re-appending them all at once doesn't work because we lose focus, etc.
+        let latestVisibleItem: HTMLDivElement | null = null;
+        for (const f of Object.values(this.#fields)) {
+            const wasVisibleBefore = this.#visibilityMemo[f.name];
+            const isVisibleNow = this.#fields[f.name].visible;
+            const hasChangedVisibility = wasVisibleBefore !== isVisibleNow;
+
+            if (isVisibleNow) {
+                if (hasChangedVisibility) {
+                    latestVisibleItem ? latestVisibleItem.after(f.el) : this.form.append(f.el);
+                }
+                latestVisibleItem = f.el;
+            }
+            else {
+                f.el.remove();
+            }
+        }
+        this.#updatePasses = 0;
+        this.#visibilityMemo = null;
     }
 
     /** 
@@ -683,13 +696,30 @@ class LogicForm extends HTMLElement {
         return true;
     }
 
+
+    /**
+        Parse if / else if / else from JSON and return the correct value based on the current form state.
+     */
+    #resolveRuleWithReturnValue(rule: RuleWithReturnValue): Value {
+        const thenResult = this.#evaluateBooleanProperty(rule.if, false);
+        if (thenResult) return rule.then;
+        if (Array.isArray(rule.elseif)) {
+            for (const elseifRule of rule.elseif) {
+                const elseifResult = this.#evaluateBooleanProperty(elseifRule.if, false);
+                if (elseifResult) return elseifRule.then;
+            }
+        }
+        return rule.else ?? '';
+    }
+
     /** 
      * Figures out what a property (required, visible, etc.) should be based on current form state.
      * Returns default if not defined. This is constantly run as the form updates
     */
-    #evaluateBooleanProperty(propertyVal: BooleanRule[] | boolean | undefined, defaultValue: boolean): boolean {
+    #evaluateBooleanProperty(propertyVal: BooleanRule[] | BooleanRule | boolean | undefined, defaultValue: boolean): boolean {
         if (typeof propertyVal === 'boolean') return propertyVal;
         if (Array.isArray(propertyVal)) return propertyVal.every(rule => this.#evaluateBooleanRule(rule));
+        if (typeof propertyVal === 'object' && !!propertyVal) return this.#evaluateBooleanRule(propertyVal);
         return defaultValue;
     };
 
@@ -895,11 +925,11 @@ class LogicForm extends HTMLElement {
     /** Change the entire config and rebuild the form */
     setConfig(config: Config) {
         this.#config = config;
-        //this.form.replaceChildren();
-        //this.form.append(this.#titleEl);
         this.#titleEl.textContent = config.title?.trim() ?? '';
         this.#fields = {};
         this.#valueGetterObject = Object.create(null);
+        this.form.replaceChildren();
+        this.form.append(this.#titleEl);
         for (const f of config.fields ?? []) {
             const fieldInternal = this.#buildField(f);
             // Several layers of getter/setters here
@@ -914,9 +944,9 @@ class LogicForm extends HTMLElement {
                 },
                 enumerable: true,
             });
-            //this.form.append(fieldInternal.el);
+            this.form.append(fieldInternal.el);
         }
-        //this.form.append(this.#buttonRow);
+        this.form.append(this.#buttonRow);
         this.#update();
         this.#dispatchUpdateEvent('setConfig');
     }
@@ -932,9 +962,9 @@ type FieldBase = {
     type: 'textbox' | 'textarea' | 'checkbox' | 'select' | 'numerictextbox' | 'integer' | 'decimal' | 'checkboxgroup' | 'radiogroup' | 'list' | 'date';
     name: string;
     label: string;
-    visible?: BooleanRule[] | boolean;
-    required?: BooleanRule[] | boolean;
-    disabled?: BooleanRule[] | boolean;
+    visible?: BooleanRule | BooleanRule[] | boolean;
+    required?: BooleanRule | BooleanRule[] | boolean;
+    disabled?: BooleanRule | BooleanRule[] | boolean;
 }
 
 type Textbox = FieldBase & {
@@ -1048,10 +1078,10 @@ type BooleanRule = EqualsRule | NotEqualsRule | LessThanRule | LessThanOrEqualTo
 // Return a value based on a rule.
 // Can get pretty complex here.
 type RuleWithReturnValue = {
-    if: BooleanRule[],
+    if: BooleanRule | BooleanRule[],
     then: Value,
     elseif?: {
-        if: BooleanRule[],
+        if: BooleanRule | BooleanRule[],
         then: Value,
     }[],
     else: Value
@@ -1075,8 +1105,10 @@ type FieldInternal = {
     readonly visible: boolean;
     readonly required: boolean;
     readonly disabled: boolean;
+    readonly isTouched: boolean;
     //readonly readonly: boolean;
     value: Value;
+
     updateState(): void;
 };
 
