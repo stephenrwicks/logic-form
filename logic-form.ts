@@ -40,9 +40,9 @@ class LogicForm extends HTMLElement {
         return this.#isNumeric(val) && !Number.isSafeInteger(val);
     }
 
-    #isVarRef(val: unknown): val is VarRef {
-        return !!val && typeof val === 'object' && 'var' in val && typeof val.var === 'string';
-    }
+    // #isVarRef(val: unknown): val is VarRef {
+    //     return !!val && typeof val === 'object' && 'var' in val && typeof val.var === 'string';
+    // }
 
     #isRuleWithReturnValue(val: unknown): val is RuleWithReturnValue {
         return !!val && typeof val === 'object' && 'if' in val && 'then' in val && typeof val.if === 'object';
@@ -256,9 +256,6 @@ class LogicForm extends HTMLElement {
                     const resolved = String(this.#resolveRuleWithReturnValue(f.defaultValue));
                     for (const option of (input as HTMLSelectElement).options) {
                         option.defaultSelected = option.value === resolved && validValues.has(resolved);
-                    }
-                    if (!internals.isTouched) {
-                        console.log('aaa');
                     }
                 }
             };
@@ -652,10 +649,6 @@ class LogicForm extends HTMLElement {
 
         console.info(`Updated the form state in ${this.#updatePasses} ${this.#updatePasses > 1 ? 'passes' : 'pass'}.`);
 
-        const renderer = (el: HTMLDivElement) => {
-
-        };
-
         // We are dynamically adding and removing items from the DOM.
         // Use visibilityMemo to check if the visibility actually changed.
         // Keep track of the latest visible item to always append them in order (append after the last visible one)
@@ -716,9 +709,9 @@ class LogicForm extends HTMLElement {
      * Figures out what a property (required, visible, etc.) should be based on current form state.
      * Returns default if not defined. This is constantly run as the form updates
     */
-    #evaluateBooleanProperty(propertyVal: BooleanRule[] | BooleanRule | boolean | undefined, defaultValue: boolean): boolean {
+    #evaluateBooleanProperty(propertyVal: boolean | BooleanRule | AndRule | OrRule | NotRule | undefined, defaultValue: boolean): boolean {
         if (typeof propertyVal === 'boolean') return propertyVal;
-        if (Array.isArray(propertyVal)) return propertyVal.every(rule => this.#evaluateBooleanRule(rule));
+        //if (Array.isArray(propertyVal)) return propertyVal.every(rule => this.#evaluateBooleanRule2(rule));
         if (typeof propertyVal === 'object' && !!propertyVal) return this.#evaluateBooleanRule(propertyVal);
         return defaultValue;
     };
@@ -728,73 +721,58 @@ class LogicForm extends HTMLElement {
         * Also needs some type checking, maybe, or else you can do weird things like 'a' < 'aa' etc? This is probably ok
     *  Does check for arrays*/
 
-    #evaluateBooleanRule(rule: BooleanRule): boolean {
-        if ('==' in rule) {
-            const [left, right] = rule['=='];
-            const side1 = this.#readRuleSide(left);
-            const side2 = this.#readRuleSide(right);
-            if (Array.isArray(side1) && Array.isArray(side2)) return this.#isFlatStringArrayEqual(side1, side2);
-            return side1 === side2;
-        }
-        if ('!=' in rule) {
-            const [left, right] = rule['!='];
-            const side1 = this.#readRuleSide(left);
-            const side2 = this.#readRuleSide(right);
-            if (Array.isArray(side1) && Array.isArray(side2)) return this.#isFlatStringArrayEqual(side1, side2) === false;
-            return side1 !== side2;
-        }
-        if ('>' in rule) {
-            const [left, right] = rule['>'];
-            return this.#readRuleSide(left) > this.#readRuleSide(right);
-        }
-        if ('<' in rule) {
-            const [left, right] = rule['<'];
-            return this.#readRuleSide(left) < this.#readRuleSide(right);
-        }
-        if ('>=' in rule) {
-            const [left, right] = rule['>='];
-            return this.#readRuleSide(left) >= this.#readRuleSide(right);
-        }
-        if ('<=' in rule) {
-            const [left, right] = rule['<='];
-            return this.#readRuleSide(left) <= this.#readRuleSide(right);
-        }
-
-        // Add 'in' and '!in' operators
-
-        if ('in' in rule) {
-            const [left, right] = rule['in'];
-            return this.#readRuleSide(left) <= this.#readRuleSide(right);
-        }
-
-        if ('not' in rule) {
-            // A not rule looks like { not: { '==': [{ var: 'fieldName' }, 'fieldValue'] } }
-            // True if it returns false
-            return this.#evaluateBooleanRule(rule.not) === false;
-        }
-        // These are collections of other rules, so we use recursion here
-        if ('and' in rule) {
-            // Everything has to return true
+    #evaluateBooleanRule(rule: BooleanRule | AndRule | OrRule | NotRule): boolean {
+        const isArray = Array.isArray(rule);
+        if (!isArray && 'and' in rule) {
             return rule.and.every((r) => this.#evaluateBooleanRule(r));
         }
-        if ('or' in rule) {
-            // True if one returns true
-            return rule.or.some((r) => this.#evaluateBooleanRule(r));
+        if (!isArray && 'or' in rule) {
+            return rule.or.every((r) => this.#evaluateBooleanRule(r));
         }
-
+        if (!isArray && 'not' in rule) {
+            return !this.#evaluateBooleanRule(rule.not);
+        }
+        const [string, operator, value] = rule;
+        const thing = this.#fields[string].value;
+        if (operator === '==') {
+            if (Array.isArray(thing) && Array.isArray(value)) return this.#isFlatStringArrayEqual(thing, value);
+            return thing === value;
+        }
+        if (operator === '!=') {
+            if (Array.isArray(thing) && Array.isArray(value)) return !this.#isFlatStringArrayEqual(thing, value);
+            return thing !== value;
+        }
+        if (operator === '>') {
+            return thing > value;
+        }
+        if (operator === '<') {
+            return thing < value;
+        }
+        if (operator === '>=') {
+            return thing >= value;
+        }
+        if (operator === '<=') {
+            return thing <= value;
+        }
+        if ('in' in rule) {
+            return (Array.isArray(value) && value.includes(thing as any));
+        }
+        if ('!in' in rule) {
+            return (Array.isArray(value) && !value.includes(thing as any));
+        }
         return true;
     };
 
-    /** 
-        Interprets a side of a rule so we can compare the two sides
-    */
-    #readRuleSide(side: VarRef | Value): Value {
-        if (this.#isVarRef(side)) {
-            return this.#fields[side.var].value;
-        }
-        // Is already some kind of value so we return that.
-        return side;
-    }
+    // /** 
+    //     Interprets a side of a rule so we can compare the two sides
+    // */
+    // #readRuleSide(side: VarRef | Value): Value {
+    //     if (this.#isVarRef(side)) {
+    //         return this.#fields[side.var].value;
+    //     }
+    //     // Is already some kind of value so we return that.
+    //     return side;
+    // }
 
 
     /** 
@@ -962,9 +940,9 @@ type FieldBase = {
     type: 'textbox' | 'textarea' | 'checkbox' | 'select' | 'numerictextbox' | 'integer' | 'decimal' | 'checkboxgroup' | 'radiogroup' | 'list' | 'date';
     name: string;
     label: string;
-    visible?: BooleanRule | BooleanRule[] | boolean;
-    required?: BooleanRule | BooleanRule[] | boolean;
-    disabled?: BooleanRule | BooleanRule[] | boolean;
+    visible?: BooleanRule | AndRule | OrRule | NotRule | boolean;
+    required?: BooleanRule | AndRule | OrRule | NotRule | boolean;
+    disabled?: BooleanRule | AndRule | OrRule | NotRule | boolean;
 }
 
 type Textbox = FieldBase & {
@@ -1058,30 +1036,19 @@ type DateInput = FieldBase & {
     max?: string;
 }
 
+type Operator = '==' | '!=' | '>' | '<' | '>=' | '<=' | 'in' | '!in';
 type Value = boolean | string | number | string[];
-type VarRef = { var: string }; // e.g. { "var": "fieldName" }
-type EqualsRule = { '==': [Value | VarRef, Value | VarRef] };
-type NotEqualsRule = { '!=': [Value | VarRef, Value | VarRef] };
-type LessThanRule = { '<': [Value | VarRef, Value | VarRef] };
-type LessThanOrEqualToRule = { '<=': [Value | VarRef, Value | VarRef] };
-type GreaterThanRule = { '>': [Value | VarRef, Value | VarRef] };
-type GreaterThanOrEqualToRule = { '>=': [Value | VarRef, Value | VarRef] };
-type InRule = { 'in': [Value | VarRef, Value | VarRef] };
-
-// metarules
+type BooleanRule = [string, Operator, Value];
 type AndRule = { and: BooleanRule[] };
 type OrRule = { or: BooleanRule[] };
-type NotRule = { not: BooleanRule }; // { not: { '==': [{ var: 'fieldName' }, 'fieldValue'] } }
-
-type BooleanRule = EqualsRule | NotEqualsRule | LessThanRule | LessThanOrEqualToRule | GreaterThanRule | GreaterThanOrEqualToRule | InRule | AndRule | OrRule | NotRule;
-
+type NotRule = { not: BooleanRule };
 // Return a value based on a rule.
 // Can get pretty complex here.
 type RuleWithReturnValue = {
-    if: BooleanRule | BooleanRule[],
+    if: BooleanRule | AndRule | OrRule | NotRule,
     then: Value,
     elseif?: {
-        if: BooleanRule | BooleanRule[],
+        if: BooleanRule | AndRule | OrRule | NotRule,
         then: Value,
     }[],
     else: Value
