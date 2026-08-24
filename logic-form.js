@@ -66,7 +66,10 @@ class LogicForm extends HTMLElement {
         const labelSpan = document.createElement('span');
         const requiredSpan = document.createElement('span');
         label.htmlFor = id;
-        labelSpan.textContent = f.label.trim();
+        const isLabelRule = this.#isRuleWithReturnValue(f.label);
+        if (!isLabelRule && typeof f.label === 'string') {
+            labelSpan.textContent = f.label.trim();
+        }
         requiredSpan.textContent = ' *';
         requiredSpan.ariaHidden = 'true';
         label.replaceChildren(labelSpan, requiredSpan);
@@ -75,6 +78,7 @@ class LogicForm extends HTMLElement {
         let setValue;
         let setRequired;
         let setDefaultValue;
+        let setPlaceholder;
         let eventToListenFor = 'change';
         const whiteSpaceBlocker = () => input.setCustomValidity(!!getValue() ? '' : 'This field is required.');
         this.#fixMinMax(f);
@@ -85,8 +89,14 @@ class LogicForm extends HTMLElement {
                 input.type = 'text';
             input.id = id;
             input.name = f.name;
-            if (f.placeholder)
-                input.placeholder = f.placeholder;
+            if (f.placeholder) {
+                if (this.#isRuleWithReturnValue(f.placeholder)) {
+                    setPlaceholder = () => input.placeholder = String(this.#resolveRuleWithReturnValue(f.placeholder));
+                }
+                else {
+                    input.placeholder = f.placeholder;
+                }
+            }
             if (f.maxLength && this.#isInteger(f.maxLength))
                 input.maxLength = f.maxLength;
             if (f.minLength && this.#isInteger(f.minLength))
@@ -236,7 +246,7 @@ class LogicForm extends HTMLElement {
             input = document.createElement('fieldset');
             input.id = id;
             const legend = document.createElement('legend');
-            legend.replaceChildren(f.label.trim(), requiredSpan);
+            legend.replaceChildren(labelSpan, requiredSpan);
             input.append(legend);
             div.replaceChildren(input);
             if (this.#isInteger(f.min) && this.#isInteger(f.max) && f.min > f.max) {
@@ -313,7 +323,7 @@ class LogicForm extends HTMLElement {
             input.id = id;
             input.style.position = 'relative';
             const legend = document.createElement('legend');
-            legend.replaceChildren(f.label.trim(), requiredSpan);
+            legend.replaceChildren(labelSpan, requiredSpan);
             input.append(legend);
             div.replaceChildren(input);
             const clearButton = document.createElement('button');
@@ -361,7 +371,7 @@ class LogicForm extends HTMLElement {
             input.id = id;
             const legend = document.createElement('legend');
             const innerDiv = document.createElement('div');
-            legend.replaceChildren(f.label.trim(), requiredSpan);
+            legend.replaceChildren(labelSpan, requiredSpan);
             input.append(legend, innerDiv);
             div.replaceChildren(input);
             const listItems = new Set();
@@ -529,6 +539,10 @@ class LogicForm extends HTMLElement {
                 _disabled = cl.#evaluateBooleanProperty(f.disabled, false);
                 _required = cl.#evaluateBooleanProperty(f.required, false);
                 setDefaultValue?.();
+                setPlaceholder?.();
+                if (isLabelRule) {
+                    labelSpan.textContent = String(cl.#resolveRuleWithReturnValue(f.label)) ?? '';
+                }
                 if (_visible) {
                     input.disabled = false || _disabled;
                 }
@@ -548,6 +562,16 @@ class LogicForm extends HTMLElement {
         if (f.type === 'checkboxgroup' || f.type === 'list')
             return [];
         return '';
+    }
+    #interpolation(str) {
+        const a = str.indexOf('{{');
+        const b = str.indexOf('}}');
+        if (a === -1)
+            return;
+        if (b === -1)
+            return;
+        const fieldName = str.slice(a + 2, b);
+        return this.#fields[fieldName].value;
     }
     #updatePasses = 0;
     #visibilityMemo = null;
@@ -613,7 +637,7 @@ class LogicForm extends HTMLElement {
                     return elseifRule.then;
             }
         }
-        return rule.else ?? '';
+        return rule.else || '';
     }
     #evaluateBooleanProperty(propertyVal, defaultValue) {
         if (typeof propertyVal === 'boolean')
@@ -629,40 +653,52 @@ class LogicForm extends HTMLElement {
             return rule.and.every((r) => this.#evaluateBooleanRule(r));
         }
         if (!isArray && 'or' in rule) {
-            return rule.or.every((r) => this.#evaluateBooleanRule(r));
+            return rule.or.some((r) => this.#evaluateBooleanRule(r));
         }
         if (!isArray && 'not' in rule) {
             return !this.#evaluateBooleanRule(rule.not);
         }
-        const [string, operator, value] = rule;
-        const thing = this.#fields[string].value;
+        const [string, operator, valueInRule] = rule;
+        const fieldValue = this.#fields[string].value;
         if (operator === '==') {
-            if (Array.isArray(thing) && Array.isArray(value))
-                return this.#isFlatStringArrayEqual(thing, value);
-            return thing === value;
+            if (Array.isArray(fieldValue) && Array.isArray(valueInRule))
+                return this.#isFlatStringArrayEqual(fieldValue, valueInRule);
+            return fieldValue === valueInRule;
         }
         if (operator === '!=') {
-            if (Array.isArray(thing) && Array.isArray(value))
-                return !this.#isFlatStringArrayEqual(thing, value);
-            return thing !== value;
+            if (Array.isArray(fieldValue) && Array.isArray(valueInRule))
+                return !this.#isFlatStringArrayEqual(fieldValue, valueInRule);
+            return fieldValue !== valueInRule;
         }
         if (operator === '>') {
-            return thing > value;
+            if (Array.isArray(fieldValue) && Array.isArray(valueInRule)) {
+                return fieldValue.length > valueInRule.length;
+            }
+            return fieldValue > valueInRule;
         }
         if (operator === '<') {
-            return thing < value;
+            if (Array.isArray(fieldValue) && Array.isArray(valueInRule)) {
+                return fieldValue.length < valueInRule.length;
+            }
+            return fieldValue < valueInRule;
         }
         if (operator === '>=') {
-            return thing >= value;
+            if (Array.isArray(fieldValue) && Array.isArray(valueInRule)) {
+                return fieldValue.length >= valueInRule.length;
+            }
+            return fieldValue >= valueInRule;
         }
         if (operator === '<=') {
-            return thing <= value;
+            if (Array.isArray(fieldValue) && Array.isArray(valueInRule)) {
+                return fieldValue.length <= valueInRule.length;
+            }
+            return fieldValue <= valueInRule;
         }
-        if ('in' in rule) {
-            return (Array.isArray(value) && value.includes(thing));
+        if (operator === 'in') {
+            return (Array.isArray(fieldValue) && fieldValue.includes(valueInRule));
         }
-        if ('!in' in rule) {
-            return (Array.isArray(value) && !value.includes(thing));
+        if (operator === '!in') {
+            return (Array.isArray(fieldValue) && !fieldValue.includes(valueInRule));
         }
         return true;
     }
@@ -709,6 +745,9 @@ class LogicForm extends HTMLElement {
     form = document.createElement('form');
     get $() {
         return this.#valueGetterObject;
+    }
+    getConfig() {
+        return this.#config;
     }
     getValue() {
         const result = {};

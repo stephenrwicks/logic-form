@@ -40,14 +40,9 @@ class LogicForm extends HTMLElement {
         return this.#isNumeric(val) && !Number.isSafeInteger(val);
     }
 
-    // #isVarRef(val: unknown): val is VarRef {
-    //     return !!val && typeof val === 'object' && 'var' in val && typeof val.var === 'string';
-    // }
-
     #isRuleWithReturnValue(val: unknown): val is RuleWithReturnValue {
         return !!val && typeof val === 'object' && 'if' in val && 'then' in val && typeof val.if === 'object';
     }
-
 
     #isFlatStringArrayEqual(array1: string[], array2: string[]) {
         // Compare string value arrays for checkbox groups, etc. We don't care about order so we sort it first
@@ -80,7 +75,11 @@ class LogicForm extends HTMLElement {
         const labelSpan = document.createElement('span');
         const requiredSpan = document.createElement('span');
         label.htmlFor = id;
-        labelSpan.textContent = f.label.trim();
+        //labelSpan.textContent = f.label.trim();
+        const isLabelRule = this.#isRuleWithReturnValue(f.label);
+        if (!isLabelRule && typeof f.label === 'string') {
+            labelSpan.textContent = f.label.trim();
+        }
         requiredSpan.textContent = ' *';
         requiredSpan.ariaHidden = 'true';
         label.replaceChildren(labelSpan, requiredSpan);
@@ -89,6 +88,7 @@ class LogicForm extends HTMLElement {
         let setValue: (val: any) => void;
         let setRequired: (bool: boolean) => void;
         let setDefaultValue: () => void;
+        let setPlaceholder: () => void;
         let eventToListenFor: 'change' | 'input' = 'change';
         const whiteSpaceBlocker = () => input.setCustomValidity(!!getValue() ? '' : 'This field is required.');
         this.#fixMinMax(f);
@@ -100,7 +100,15 @@ class LogicForm extends HTMLElement {
             if (f.type === 'textbox' || f.type === 'numerictextbox') (input as HTMLInputElement).type = 'text';
             input.id = id;
             input.name = f.name;
-            if (f.placeholder) input.placeholder = f.placeholder;
+            if (f.placeholder) {
+                if (this.#isRuleWithReturnValue(f.placeholder)) {
+                    setPlaceholder = () => (input as HTMLInputElement | HTMLTextAreaElement).placeholder = String(this.#resolveRuleWithReturnValue(f.placeholder));
+                }
+                else {
+                    input.placeholder = f.placeholder;
+                }
+
+            }
             if (f.maxLength && this.#isInteger(f.maxLength)) input.maxLength = f.maxLength;
             if (f.minLength && this.#isInteger(f.minLength)) input.minLength = f.minLength;
             div.replaceChildren(label, input);
@@ -272,7 +280,7 @@ class LogicForm extends HTMLElement {
             input = document.createElement('fieldset');
             input.id = id;
             const legend = document.createElement('legend');
-            legend.replaceChildren(f.label.trim(), requiredSpan);
+            legend.replaceChildren(labelSpan, requiredSpan);
             input.append(legend);
             div.replaceChildren(input);
 
@@ -353,7 +361,7 @@ class LogicForm extends HTMLElement {
             input.id = id;
             input.style.position = 'relative';
             const legend = document.createElement('legend');
-            legend.replaceChildren(f.label.trim(), requiredSpan);
+            legend.replaceChildren(labelSpan, requiredSpan);
             input.append(legend);
             div.replaceChildren(input);
 
@@ -407,7 +415,7 @@ class LogicForm extends HTMLElement {
             input.id = id;
             const legend = document.createElement('legend');
             const innerDiv = document.createElement('div');
-            legend.replaceChildren(f.label.trim(), requiredSpan);
+            legend.replaceChildren(labelSpan, requiredSpan);
             input.append(legend, innerDiv);
             div.replaceChildren(input);
 
@@ -592,6 +600,10 @@ class LogicForm extends HTMLElement {
                 _disabled = cl.#evaluateBooleanProperty(f.disabled, false);
                 _required = cl.#evaluateBooleanProperty(f.required, false);
                 setDefaultValue?.();
+                setPlaceholder?.();
+                if (isLabelRule) {
+                    labelSpan.textContent = String(cl.#resolveRuleWithReturnValue(f.label as RuleWithReturnValue)) ?? '';
+                }
 
                 if (_visible) {
                     //div.style.display = '';
@@ -617,6 +629,18 @@ class LogicForm extends HTMLElement {
         if (f.type === 'checkbox') return false;
         if (f.type === 'checkboxgroup' || f.type === 'list') return [];
         return '';
+    }
+
+    /** 
+        Insert field values into strings so we can dynamically bind field A value into field B label, etc?
+     * **/
+    #interpolate(str: string) {
+        const a = str.indexOf('{{');
+        const b = str.indexOf('}}');
+        if (a === -1) return;
+        if (b === -1) return;
+        const fieldName = str.slice(a + 2, b);
+        return this.#fields[fieldName].value;
     }
 
     /** 
@@ -702,14 +726,14 @@ class LogicForm extends HTMLElement {
                 if (elseifResult) return elseifRule.then;
             }
         }
-        return rule.else ?? '';
+        return rule.else || '';
     }
 
     /** 
      * Figures out what a property (required, visible, etc.) should be based on current form state.
      * Returns default if not defined. This is constantly run as the form updates
     */
-    #evaluateBooleanProperty(propertyVal: boolean | BooleanRule | AndRule | OrRule | NotRule | undefined, defaultValue: boolean): boolean {
+    #evaluateBooleanProperty(propertyVal: boolean | BooleanExpression | AndRule | OrRule | NotRule | undefined, defaultValue: boolean): boolean {
         if (typeof propertyVal === 'boolean') return propertyVal;
         //if (Array.isArray(propertyVal)) return propertyVal.every(rule => this.#evaluateBooleanRule2(rule));
         if (typeof propertyVal === 'object' && !!propertyVal) return this.#evaluateBooleanRule(propertyVal);
@@ -721,59 +745,59 @@ class LogicForm extends HTMLElement {
         * Also needs some type checking, maybe, or else you can do weird things like 'a' < 'aa' etc? This is probably ok
     *  Does check for arrays*/
 
-    #evaluateBooleanRule(rule: BooleanRule | AndRule | OrRule | NotRule): boolean {
+    #evaluateBooleanRule(rule: BooleanExpression | AndRule | OrRule | NotRule): boolean {
         const isArray = Array.isArray(rule);
         if (!isArray && 'and' in rule) {
             return rule.and.every((r) => this.#evaluateBooleanRule(r));
         }
         if (!isArray && 'or' in rule) {
-            return rule.or.every((r) => this.#evaluateBooleanRule(r));
+            return rule.or.some((r) => this.#evaluateBooleanRule(r));
         }
         if (!isArray && 'not' in rule) {
             return !this.#evaluateBooleanRule(rule.not);
         }
-        const [string, operator, value] = rule;
-        const thing = this.#fields[string].value;
+        const [string, operator, valueInRule] = rule;
+        const fieldValue = this.#fields[string].value;
         if (operator === '==') {
-            if (Array.isArray(thing) && Array.isArray(value)) return this.#isFlatStringArrayEqual(thing, value);
-            return thing === value;
+            if (Array.isArray(fieldValue) && Array.isArray(valueInRule)) return this.#isFlatStringArrayEqual(fieldValue, valueInRule);
+            return fieldValue === valueInRule;
         }
         if (operator === '!=') {
-            if (Array.isArray(thing) && Array.isArray(value)) return !this.#isFlatStringArrayEqual(thing, value);
-            return thing !== value;
+            if (Array.isArray(fieldValue) && Array.isArray(valueInRule)) return !this.#isFlatStringArrayEqual(fieldValue, valueInRule);
+            return fieldValue !== valueInRule;
         }
         if (operator === '>') {
-            return thing > value;
+            if (Array.isArray(fieldValue) && Array.isArray(valueInRule)) {
+                return fieldValue.length > valueInRule.length;
+            }
+            return fieldValue > valueInRule;
         }
         if (operator === '<') {
-            return thing < value;
+            if (Array.isArray(fieldValue) && Array.isArray(valueInRule)) {
+                return fieldValue.length < valueInRule.length;
+            }
+            return fieldValue < valueInRule;
         }
         if (operator === '>=') {
-            return thing >= value;
+            if (Array.isArray(fieldValue) && Array.isArray(valueInRule)) {
+                return fieldValue.length >= valueInRule.length;
+            }
+            return fieldValue >= valueInRule;
         }
         if (operator === '<=') {
-            return thing <= value;
+            if (Array.isArray(fieldValue) && Array.isArray(valueInRule)) {
+                return fieldValue.length <= valueInRule.length;
+            }
+            return fieldValue <= valueInRule;
         }
-        if ('in' in rule) {
-            return (Array.isArray(value) && value.includes(thing as any));
+        if (operator === 'in') {
+            return (Array.isArray(fieldValue) && fieldValue.includes(valueInRule as any));
         }
-        if ('!in' in rule) {
-            return (Array.isArray(value) && !value.includes(thing as any));
+        if (operator === '!in') {
+            return (Array.isArray(fieldValue) && !fieldValue.includes(valueInRule as any));
         }
         return true;
     };
-
-    // /** 
-    //     Interprets a side of a rule so we can compare the two sides
-    // */
-    // #readRuleSide(side: VarRef | Value): Value {
-    //     if (this.#isVarRef(side)) {
-    //         return this.#fields[side.var].value;
-    //     }
-    //     // Is already some kind of value so we return that.
-    //     return side;
-    // }
-
 
     /** 
         Bubble a custom event
@@ -834,6 +858,9 @@ class LogicForm extends HTMLElement {
     /** Two way object */
     get $() {
         return this.#valueGetterObject;
+    }
+    getConfig() {
+        return this.#config;
     }
     /** Get object of active and relevant form field values */
     getValue() {
@@ -939,10 +966,10 @@ type Field = Textbox | Textarea | Checkbox | Select | NumericTextbox | Integer |
 type FieldBase = {
     type: 'textbox' | 'textarea' | 'checkbox' | 'select' | 'numerictextbox' | 'integer' | 'decimal' | 'checkboxgroup' | 'radiogroup' | 'list' | 'date';
     name: string;
-    label: string;
-    visible?: BooleanRule | AndRule | OrRule | NotRule | boolean;
-    required?: BooleanRule | AndRule | OrRule | NotRule | boolean;
-    disabled?: BooleanRule | AndRule | OrRule | NotRule | boolean;
+    label: string | RuleWithReturnValue;
+    visible?: BooleanExpression | AndRule | OrRule | NotRule | boolean;
+    required?: BooleanExpression | AndRule | OrRule | NotRule | boolean;
+    disabled?: BooleanExpression | AndRule | OrRule | NotRule | boolean;
 }
 
 type Textbox = FieldBase & {
@@ -1038,18 +1065,17 @@ type DateInput = FieldBase & {
 
 type Operator = '==' | '!=' | '>' | '<' | '>=' | '<=' | 'in' | '!in';
 type Value = boolean | string | number | string[];
-type BooleanRule = [string, Operator, Value];
-type AndRule = { and: BooleanRule[] };
-type OrRule = { or: BooleanRule[] };
-type NotRule = { not: BooleanRule };
-// Return a value based on a rule.
-// Can get pretty complex here.
+type BooleanExpression = [string, Operator, Value];
+type AndRule = { and: BooleanExpression[] };
+type OrRule = { or: BooleanExpression[] };
+type NotRule = { not: BooleanExpression | AndRule | OrRule };
+
 type RuleWithReturnValue = {
-    if: BooleanRule | AndRule | OrRule | NotRule,
+    if: BooleanExpression | AndRule | OrRule | NotRule,
     then: Value,
     elseif?: {
-        if: BooleanRule | AndRule | OrRule | NotRule,
-        then: Value,
+        if: BooleanExpression | AndRule | OrRule | NotRule,
+        then: Value
     }[],
     else: Value
 };
@@ -1057,13 +1083,7 @@ type RuleWithReturnValue = {
 type Config = {
     title: string;
     fields: Field[];
-    //fields: Field[] | Section[];
 }
-
-// type Section = Config & {
-//     visible?: Rule[] | boolean;
-//     // repeatable
-// }
 
 type FieldInternal = {
     readonly type: FieldBase['type'];

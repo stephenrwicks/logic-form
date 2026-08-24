@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../logic-form.css">
+  <script src="../logic-form.js"></script>
+  <style>
+    form {
+      margin-bottom: 1rem;
+    }
+  </style>
+
+</head>
+
+<body>
+
+  <logic-form id="demo1" data-config='{
+    "title": "Show a field (add to DOM) when checkbox is checked",
+    "fields": [
+      {
+        "type": "checkbox",
+        "name": "fieldA",
+        "label": "Show Field B"
+      },
+      {
+        "type": "textbox",
+        "name": "fieldB",
+        "label": "Field B",
+        "visible": ["fieldA", "==", true]
+      }
+    ]
+  }'>
+  </logic-form>
+
+  <logic-form id="demo2" data-theme="green" data-config='{
+    "title": "Field is disabled when select is set to option C and checkbox is checked",
+    "fields": [
+      {
+        "type": "select",
+        "name": "fieldA",
+        "label": "Field A",
+        "options": [
+          { "text": "Option A", "value": "a" },
+          { "text": "Option B", "value": "b" },
+          { "text": "Option C", "value": "c" }
+        ]
+      },
+      {
+        "type": "checkbox",
+        "name": "fieldB",
+        "label": "Field B"
+      },
+      {
+        "type": "textbox",
+        "name": "fieldC",
+        "label": "Field C",
+        "disabled": {
+          "and": [
+            ["fieldA", "==", "c"],
+            ["fieldB", "==", true]
+          ]
+        }
+      }
+    ]
+  }'>
+  </logic-form>
+
+  <logic-form id="demo3" data-theme="purple" data-config='{
+    "title": "Show a field when an integer is greater than 10",
+    "fields": [
+      {
+        "type": "integer",
+        "name": "fieldA",
+        "label": "Enter a number"
+      },
+      {
+        "type": "textbox",
+        "name": "fieldB",
+        "label": "Field B",
+        "visible": ["fieldA", ">", 10]
+      }
+    ]
+  }'>
+  </logic-form>
+
+  <logic-form id="demo4" data-theme="teal" data-config='{
+    "title": "Disable a field unless checkboxgroup includes A and B, then field is required",
+    "fields": [
+      {
+        "type": "checkboxgroup",
+        "name": "fieldA",
+        "label": "Field A",
+        "options": [
+          { "text": "Option A", "value": "a" },
+          { "text": "Option B", "value": "b" },
+          { "text": "Option C", "value": "c" },
+          { "text": "Option D", "value": "d" },
+          { "text": "Option E", "value": "e" }
+        ]
+      },
+      {
+        "type": "textbox",
+        "name": "fieldB",
+        "label": "Field B",
+        "required": {"and": [["fieldA", "in", "a"], ["fieldA", "in", "b"]]},
+        "disabled": {"or": [["fieldA", "!in", "a"], ["fieldA", "!in", "b"]]}
+      }
+    ]
+  }'>
+  </logic-form>
+
+  <logic-form id="demo5" data-theme="slate" data-config='{
+    "title": "Change a field label based on a radio selection",
+    "fields": [
+      {
+        "type": "radiogroup",
+        "name": "fieldA",
+        "label": "What are you interested in?",
+        "options": [
+          { "text": "Books", "value": "books" },
+          { "text": "Movies", "value": "movies" },
+          { "text": "Music", "value": "music" }
+        ]
+      },
+      {
+        "type": "textbox",
+        "name": "fieldB",
+        "label": {
+          "if": ["fieldA", "==", "books"],
+          "then": "Book Title",
+          "elseif": [
+            {
+              "if": ["fieldA", "==", "movies"],
+              "then": "Movie Title"
+            },
+            {
+              "if": ["fieldA", "==", "music"],
+              "then": "Album Title"
+            }
+          ],
+          "else": "Thing"
+        }
+      }
+    ]
+  }'>
+  </logic-form>
+
+  <logic-form id="demo6" data-theme="gold" data-config='{
+    "title": "Change a textarea placeholder based on list entries",
+    "fields": [
+      {
+        "type": "list",
+        "name": "fieldA",
+        "label": "Topics",
+        "min": 1,
+        "max": 5
+      },
+      {
+        "type": "textbox",
+        "name": "fieldB",
+        "label": "Details",
+        "placeholder": {
+          "if": ["fieldA", "in", "books"],
+          "then": "Tell us which books you are interested in...",
+          "elseif": [
+            {
+              "if": ["fieldA", "in", "technology"],
+              "then": "Describe the technology you need help with..."
+            },
+            {
+              "if": ["fieldA", "in", "events"],
+              "then": "Tell us about the event you are interested in..."
+            }
+          ],
+          "else": "Tell us more about what you are looking for..."
+        }
+      }
+    ]
+  }'>
+  </logic-form>
+
+
+
+
+</html>

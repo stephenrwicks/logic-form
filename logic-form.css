@@ -21,6 +21,25 @@ logic-form {
     }
 
 
+    &[data-theme="teal"] {
+        --primary: #075e5e;
+        --secondary: #20c9c9;
+        --danger: #d62828;
+    }
+
+    &[data-theme="slate"] {
+        --primary: #293241;
+        --secondary: #5c677d;
+        --danger: #c44536;
+    }
+
+    &[data-theme="gold"] {
+        --primary: #76520e;
+        --secondary: #d9a441;
+        --danger: #b42318;
+    }
+
+
     --white: color-mix(in oklch, white 97%, var(--primary) 3%);
     --gray: color-mix(in oklch, gray 35%, var(--primaryLight) 65%);
     --black: color-mix(in oklch, black 75%, var(--primary) 25%);
@@ -107,7 +126,7 @@ logic-form {
     /* Required span */
     label>span:nth-of-type(2),
     label>span>span:nth-of-type(2),
-    legend>span {
+    legend>span:nth-of-type(2) {
         color: var(--danger);
     }
 
@@ -134,6 +153,7 @@ logic-form {
         &:has(:disabled) {
             cursor: default;
             background-color: revert;
+
             &:hover {
                 background-color: revert;
             }
@@ -144,6 +164,7 @@ logic-form {
         &:where(fieldset:disabled label:has(input[type="checkbox"])) {
             cursor: default;
             background-color: revert;
+
             &:hover {
                 background-color: revert;
             }
