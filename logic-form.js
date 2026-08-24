@@ -367,6 +367,7 @@ class LogicForm extends HTMLElement {
             updateClearButtonVisibility();
         }
         else if (f.type === 'list') {
+            eventToListenFor = 'change';
             input = document.createElement('fieldset');
             input.id = id;
             const legend = document.createElement('legend');
@@ -399,7 +400,7 @@ class LogicForm extends HTMLElement {
                         if (this.#isInteger(f.min) && listItems.size <= f.min)
                             return;
                         listItems.delete(object);
-                        itemDiv.dispatchEvent(new Event('change', { bubbles: true }));
+                        itemDiv.dispatchEvent(new Event(eventToListenFor, { bubbles: true }));
                         itemDiv.remove();
                         deleteButton.removeEventListener('click', object.remove);
                     }
@@ -563,16 +564,6 @@ class LogicForm extends HTMLElement {
             return [];
         return '';
     }
-    #interpolate(str) {
-        const a = str.indexOf('{{');
-        const b = str.indexOf('}}');
-        if (a === -1)
-            return;
-        if (b === -1)
-            return;
-        const fieldName = str.slice(a + 2, b);
-        return this.#fields[fieldName].value;
-    }
     #updatePasses = 0;
     #visibilityMemo = null;
     #update() {
@@ -658,47 +649,90 @@ class LogicForm extends HTMLElement {
         if (!isArray && 'not' in rule) {
             return !this.#evaluateBooleanRule(rule.not);
         }
-        const [string, operator, valueInRule] = rule;
-        const fieldValue = this.#fields[string].value;
+        const [left, operator, right] = rule;
+        const leftValue = typeof left === 'object' && 'field' in left ? this.#fields[left.field].value : left;
+        const rightValue = typeof right === 'object' && 'field' in right ? this.#fields[right.field].value : right;
         if (operator === '==') {
-            if (Array.isArray(fieldValue) && Array.isArray(valueInRule))
-                return this.#isFlatStringArrayEqual(fieldValue, valueInRule);
-            return fieldValue === valueInRule;
+            if (Array.isArray(leftValue) && Array.isArray(rightValue))
+                return this.#isFlatStringArrayEqual(leftValue, rightValue);
+            if (Array.isArray(leftValue) && Array.isArray(rightValue)) {
+                return leftValue.length === rightValue.length;
+            }
+            if (Array.isArray(leftValue) && typeof rightValue === 'number') {
+                return leftValue.length === rightValue;
+            }
+            if (typeof leftValue === 'number' && Array.isArray(rightValue)) {
+                return leftValue === rightValue.length;
+            }
+            return leftValue === rightValue;
         }
         if (operator === '!=') {
-            if (Array.isArray(fieldValue) && Array.isArray(valueInRule))
-                return !this.#isFlatStringArrayEqual(fieldValue, valueInRule);
-            return fieldValue !== valueInRule;
+            if (Array.isArray(leftValue) && Array.isArray(rightValue))
+                return !this.#isFlatStringArrayEqual(leftValue, rightValue);
+            if (Array.isArray(leftValue) && Array.isArray(rightValue)) {
+                return leftValue.length !== rightValue.length;
+            }
+            if (Array.isArray(leftValue) && typeof rightValue === 'number') {
+                return leftValue.length !== rightValue;
+            }
+            if (typeof leftValue === 'number' && Array.isArray(rightValue)) {
+                return leftValue !== rightValue.length;
+            }
+            return leftValue !== rightValue;
         }
         if (operator === '>') {
-            if (Array.isArray(fieldValue) && Array.isArray(valueInRule)) {
-                return fieldValue.length > valueInRule.length;
+            if (Array.isArray(leftValue) && Array.isArray(rightValue)) {
+                return leftValue.length > rightValue.length;
             }
-            return fieldValue > valueInRule;
+            if (Array.isArray(leftValue) && typeof rightValue === 'number') {
+                return leftValue.length > rightValue;
+            }
+            if (typeof leftValue === 'number' && Array.isArray(rightValue)) {
+                return leftValue > rightValue.length;
+            }
+            return leftValue > rightValue;
         }
         if (operator === '<') {
-            if (Array.isArray(fieldValue) && Array.isArray(valueInRule)) {
-                return fieldValue.length < valueInRule.length;
+            if (Array.isArray(leftValue) && Array.isArray(rightValue)) {
+                return leftValue.length < rightValue.length;
             }
-            return fieldValue < valueInRule;
+            if (Array.isArray(leftValue) && typeof rightValue === 'number') {
+                return leftValue.length < rightValue;
+            }
+            if (typeof leftValue === 'number' && Array.isArray(rightValue)) {
+                return leftValue < rightValue.length;
+            }
+            return leftValue < rightValue;
         }
         if (operator === '>=') {
-            if (Array.isArray(fieldValue) && Array.isArray(valueInRule)) {
-                return fieldValue.length >= valueInRule.length;
+            if (Array.isArray(leftValue) && Array.isArray(rightValue)) {
+                return leftValue.length >= rightValue.length;
             }
-            return fieldValue >= valueInRule;
+            if (Array.isArray(leftValue) && typeof rightValue === 'number') {
+                return leftValue.length >= rightValue;
+            }
+            if (typeof leftValue === 'number' && Array.isArray(rightValue)) {
+                return leftValue >= rightValue.length;
+            }
+            return leftValue >= rightValue;
         }
         if (operator === '<=') {
-            if (Array.isArray(fieldValue) && Array.isArray(valueInRule)) {
-                return fieldValue.length <= valueInRule.length;
+            if (Array.isArray(leftValue) && Array.isArray(rightValue)) {
+                return leftValue.length <= rightValue.length;
             }
-            return fieldValue <= valueInRule;
+            if (Array.isArray(leftValue) && typeof rightValue === 'number') {
+                return leftValue.length <= rightValue;
+            }
+            if (typeof leftValue === 'number' && Array.isArray(rightValue)) {
+                return leftValue <= rightValue.length;
+            }
+            return leftValue <= rightValue;
         }
         if (operator === 'in') {
-            return (Array.isArray(fieldValue) && fieldValue.includes(valueInRule));
+            return (rightValue.includes(leftValue));
         }
         if (operator === '!in') {
-            return (Array.isArray(fieldValue) && !fieldValue.includes(valueInRule));
+            return !(rightValue.includes(leftValue));
         }
         return true;
     }

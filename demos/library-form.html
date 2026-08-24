@@ -60,7 +60,7 @@
       "placeholder": "Enter your library card number",
       "visible": {
         "and": [
-          ["reason", "==", "materials"],
+          [{field: "reason"}, "==", "materials"],
           ["materialHelp", "==", "renew"]
         ]
       },
@@ -483,6 +483,8 @@
   ]
 }'>
 </logic-form>
+
+
 </body>
 
 </html>

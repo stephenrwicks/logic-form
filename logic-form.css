@@ -21,6 +21,18 @@ logic-form {
     }
 
 
+    &[data-theme="orange"] {
+        --primary: #a34300;
+        --secondary: #f4a261;
+        --danger: #c1121f;
+    }
+
+    &[data-theme="red"] {
+        --primary: #8f1d2c;
+        --secondary: #e85d75;
+        --danger: #b00020;
+    }
+
     &[data-theme="teal"] {
         --primary: #075e5e;
         --secondary: #20c9c9;
@@ -37,6 +49,18 @@ logic-form {
         --primary: #76520e;
         --secondary: #d9a441;
         --danger: #b42318;
+    }
+
+    &[data-theme="pink"] {
+        --primary: #8a285f;
+        --secondary: #e27ab3;
+        --danger: #c1121f;
+    }
+
+    &[data-theme="indigo"] {
+        --primary: #303f9f;
+        --secondary: #7986cb;
+        --danger: #d32f2f;
     }
 
 
@@ -107,6 +131,11 @@ logic-form {
             display: flex;
             gap: .6rem;
         }
+
+        >div[data-field-type="checkbox"]{
+            min-height: 3.59rem;
+            align-content: center;
+        }
     }
 
     form>p {
@@ -135,7 +164,6 @@ logic-form {
         width: 100%;
         margin: 0;
         display: grid;
-        align-self: end;
         align-items: center;
         justify-items: start;
         grid-template-columns: min-content 1fr;
