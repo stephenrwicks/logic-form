@@ -9,7 +9,6 @@
 </head>
 
 <body>
-
 <logic-form id="demo" data-config='{
   "title": "Contact the Library",
   "fields": [
@@ -49,8 +48,8 @@
         { "text": "Interlibrary Loan", "value": "ill" },
         { "text": "Lost Item", "value": "lost" }
       ],
-      "visible": ["reason", "==", "materials"],
-      "required": ["reason", "==", "materials"]
+      "visible": [{"field": "reason"}, "==", "materials"],
+      "required": [{"field": "reason"}, "==", "materials"]
     },
 
     {
@@ -60,14 +59,14 @@
       "placeholder": "Enter your library card number",
       "visible": {
         "and": [
-          [{field: "reason"}, "==", "materials"],
-          ["materialHelp", "==", "renew"]
+          [{"field": "reason"}, "==", "materials"],
+          [{"field": "materialHelp"}, "==", "renew"]
         ]
       },
       "required": {
         "and": [
-          ["reason", "==", "materials"],
-          ["materialHelp", "==", "renew"]
+          [{"field": "reason"}, "==", "materials"],
+          [{"field": "materialHelp"}, "==", "renew"]
         ]
       }
     },
@@ -79,16 +78,16 @@
       "max": 10,
       "visible": {
         "and": [
-          ["reason", "==", "materials"],
-          ["materialHelp", "==", "renew"],
-          ["renewAll", "==", false]
+          [{"field": "reason"}, "==", "materials"],
+          [{"field": "materialHelp"}, "==", "renew"],
+          [{"field": "renewAll"}, "==", false]
         ]
       },
       "required": {
         "and": [
-          ["reason", "==", "materials"],
-          ["materialHelp", "==", "renew"],
-          ["renewAll", "==", false]
+          [{"field": "reason"}, "==", "materials"],
+          [{"field": "materialHelp"}, "==", "renew"],
+          [{"field": "renewAll"}, "==", false]
         ]
       }
     },
@@ -98,8 +97,8 @@
       "label": "Renew all items",
       "visible": {
         "and": [
-          ["reason", "==", "materials"],
-          ["materialHelp", "==", "renew"]
+          [{"field": "reason"}, "==", "materials"],
+          [{"field": "materialHelp"}, "==", "renew"]
         ]
       }
     },
@@ -111,14 +110,14 @@
       "placeholder": "Enter your library card number",
       "visible": {
         "and": [
-          ["reason", "==", "materials"],
-          ["materialHelp", "==", "ill"]
+          [{"field": "reason"}, "==", "materials"],
+          [{"field": "materialHelp"}, "==", "ill"]
         ]
       },
       "required": {
         "and": [
-          ["reason", "==", "materials"],
-          ["materialHelp", "==", "ill"]
+          [{"field": "reason"}, "==", "materials"],
+          [{"field": "materialHelp"}, "==", "ill"]
         ]
       }
     },
@@ -130,14 +129,14 @@
       "max": 10,
       "visible": {
         "and": [
-          ["reason", "==", "materials"],
-          ["materialHelp", "==", "ill"]
+          [{"field": "reason"}, "==", "materials"],
+          [{"field": "materialHelp"}, "==", "ill"]
         ]
       },
       "required": {
         "and": [
-          ["reason", "==", "materials"],
-          ["materialHelp", "==", "ill"]
+          [{"field": "reason"}, "==", "materials"],
+          [{"field": "materialHelp"}, "==", "ill"]
         ]
       }
     },
@@ -149,14 +148,14 @@
       "placeholder": "Enter the title, barcode, or any other information you have",
       "visible": {
         "and": [
-          ["reason", "==", "materials"],
-          ["materialHelp", "==", "lost"]
+          [{"field": "reason"}, "==", "materials"],
+          [{"field": "materialHelp"}, "==", "lost"]
         ]
       },
       "required": {
         "and": [
-          ["reason", "==", "materials"],
-          ["materialHelp", "==", "lost"]
+          [{"field": "reason"}, "==", "materials"],
+          [{"field": "materialHelp"}, "==", "lost"]
         ]
       }
     },
@@ -170,8 +169,8 @@
         { "text": "Library Catalog", "value": "catalog" },
         { "text": "Printing", "value": "printing" }
       ],
-      "visible": ["reason", "==", "technology"],
-      "required": ["reason", "==", "technology"]
+      "visible": [{"field": "reason"}, "==", "technology"],
+      "required": [{"field": "reason"}, "==", "technology"]
     },
 
     {
@@ -186,14 +185,14 @@
       ],
       "visible": {
         "and": [
-          ["reason", "==", "technology"],
-          ["technologyHelp", "==", "ebooks"]
+          [{"field": "reason"}, "==", "technology"],
+          [{"field": "technologyHelp"}, "==", "ebooks"]
         ]
       },
       "required": {
         "and": [
-          ["reason", "==", "technology"],
-          ["technologyHelp", "==", "ebooks"]
+          [{"field": "reason"}, "==", "technology"],
+          [{"field": "technologyHelp"}, "==", "ebooks"]
         ]
       }
     },
@@ -210,8 +209,8 @@
       ],
       "visible": {
         "and": [
-          ["reason", "==", "technology"],
-          ["technologyHelp", "==", "ebooks"]
+          [{"field": "reason"}, "==", "technology"],
+          [{"field": "technologyHelp"}, "==", "ebooks"]
         ]
       }
     },
@@ -220,15 +219,15 @@
       "name": "ebookDetails",
       "label": "eBook Details",
       "placeholder": {
-        "if": ["ebookProblem", "==", "download"],
+        "if": [{"field": "ebookProblem"}, "==", "download"],
         "then": "Tell us what happens when you try to download the eBook...",
         "elseif": [
           {
-            "if": ["ebookProblem", "==", "open"],
+            "if": [{"field": "ebookProblem"}, "==", "open"],
             "then": "Tell us what happens when you try to open the eBook..."
           },
           {
-            "if": ["ebookProblem", "==", "expired"],
+            "if": [{"field": "ebookProblem"}, "==", "expired"],
             "then": "Tell us which eBook has expired..."
           }
         ],
@@ -236,14 +235,14 @@
       },
       "visible": {
         "and": [
-          ["reason", "==", "technology"],
-          ["technologyHelp", "==", "ebooks"]
+          [{"field": "reason"}, "==", "technology"],
+          [{"field": "technologyHelp"}, "==", "ebooks"]
         ]
       },
       "required": {
         "and": [
-          ["reason", "==", "technology"],
-          ["technologyHelp", "==", "ebooks"]
+          [{"field": "reason"}, "==", "technology"],
+          [{"field": "technologyHelp"}, "==", "ebooks"]
         ]
       }
     },
@@ -260,14 +259,14 @@
       ],
       "visible": {
         "and": [
-          ["reason", "==", "technology"],
-          ["technologyHelp", "==", "catalog"]
+          [{"field": "reason"}, "==", "technology"],
+          [{"field": "technologyHelp"}, "==", "catalog"]
         ]
       },
       "required": {
         "and": [
-          ["reason", "==", "technology"],
-          ["technologyHelp", "==", "catalog"]
+          [{"field": "reason"}, "==", "technology"],
+          [{"field": "technologyHelp"}, "==", "catalog"]
         ]
       }
     },
@@ -278,16 +277,16 @@
       "placeholder": "Title, author, subject, or ISBN",
       "visible": {
         "and": [
-          ["reason", "==", "technology"],
-          ["technologyHelp", "==", "catalog"],
-          ["catalogProblem", "==", "find"]
+          [{"field": "reason"}, "==", "technology"],
+          [{"field": "technologyHelp"}, "==", "catalog"],
+          [{"field": "catalogProblem"}, "==", "find"]
         ]
       },
       "required": {
         "and": [
-          ["reason", "==", "technology"],
-          ["technologyHelp", "==", "catalog"],
-          ["catalogProblem", "==", "find"]
+          [{"field": "reason"}, "==", "technology"],
+          [{"field": "technologyHelp"}, "==", "catalog"],
+          [{"field": "catalogProblem"}, "==", "find"]
         ]
       }
     },
@@ -296,15 +295,15 @@
       "name": "catalogDetails",
       "label": "Catalog Details",
       "placeholder": {
-        "if": ["catalogProblem", "==", "hold"],
+        "if": [{"field": "catalogProblem"}, "==", "hold"],
         "then": "Tell us which item you are trying to place a hold on...",
         "elseif": [
           {
-            "if": ["catalogProblem", "==", "login"],
+            "if": [{"field": "catalogProblem"}, "==", "login"],
             "then": "Describe what happens when you try to sign in..."
           },
           {
-            "if": ["catalogProblem", "==", "search"],
+            "if": [{"field": "catalogProblem"}, "==", "search"],
             "then": "Tell us what you searched for and what you expected to find..."
           }
         ],
@@ -312,9 +311,9 @@
       },
       "visible": {
         "and": [
-          ["reason", "==", "technology"],
-          ["technologyHelp", "==", "catalog"],
-          ["catalogProblem", "!=", ""]
+          [{"field": "reason"}, "==", "technology"],
+          [{"field": "technologyHelp"}, "==", "catalog"],
+          [{"field": "catalogProblem"}, "!=", ""]
         ]
       }
     },
@@ -331,14 +330,14 @@
       ],
       "visible": {
         "and": [
-          ["reason", "==", "technology"],
-          ["technologyHelp", "==", "printing"]
+          [{"field": "reason"}, "==", "technology"],
+          [{"field": "technologyHelp"}, "==", "printing"]
         ]
       },
       "required": {
         "and": [
-          ["reason", "==", "technology"],
-          ["technologyHelp", "==", "printing"]
+          [{"field": "reason"}, "==", "technology"],
+          [{"field": "technologyHelp"}, "==", "printing"]
         ]
       }
     },
@@ -349,15 +348,15 @@
       "placeholder": "Describe what you are trying to print or scan...",
       "visible": {
         "and": [
-          ["reason", "==", "technology"],
-          ["technologyHelp", "==", "printing"],
-          ["printingProblem", "!=", ""]
+          [{"field": "reason"}, "==", "technology"],
+          [{"field": "technologyHelp"}, "==", "printing"],
+          [{"field": "printingProblem"}, "!=", ""]
         ]
       },
       "required": {
         "and": [
-          ["reason", "==", "technology"],
-          ["technologyHelp", "==", "printing"]
+          [{"field": "reason"}, "==", "technology"],
+          [{"field": "technologyHelp"}, "==", "printing"]
         ]
       }
     },
@@ -370,8 +369,8 @@
         { "text": "Book Club", "value": "bookclub" },
         { "text": "Lego Club", "value": "lego" }
       ],
-      "visible": ["reason", "==", "programs"],
-      "required": ["reason", "==", "programs"]
+      "visible": [{"field": "reason"}, "==", "programs"],
+      "required": [{"field": "reason"}, "==", "programs"]
     },
 
     {
@@ -387,8 +386,8 @@
       ],
       "visible": {
         "and": [
-          ["reason", "==", "programs"],
-          ["program", "==", "bookclub"]
+          [{"field": "reason"}, "==", "programs"],
+          [{"field": "program"}, "==", "bookclub"]
         ]
       }
     },
@@ -400,14 +399,14 @@
       "placeholder": "Enter the child&apos;s name",
       "visible": {
         "and": [
-          ["reason", "==", "programs"],
-          ["program", "==", "lego"]
+          [{"field": "reason"}, "==", "programs"],
+          [{"field": "program"}, "==", "lego"]
         ]
       },
       "required": {
         "and": [
-          ["reason", "==", "programs"],
-          ["program", "==", "lego"]
+          [{"field": "reason"}, "==", "programs"],
+          [{"field": "program"}, "==", "lego"]
         ]
       }
     },
@@ -419,14 +418,14 @@
       "max": 12,
       "visible": {
         "and": [
-          ["reason", "==", "programs"],
-          ["program", "==", "lego"]
+          [{"field": "reason"}, "==", "programs"],
+          [{"field": "program"}, "==", "lego"]
         ]
       },
       "required": {
         "and": [
-          ["reason", "==", "programs"],
-          ["program", "==", "lego"]
+          [{"field": "reason"}, "==", "programs"],
+          [{"field": "program"}, "==", "lego"]
         ]
       }
     },
@@ -437,14 +436,14 @@
       "placeholder": "Enter a parent or guardian name",
       "visible": {
         "and": [
-          ["reason", "==", "programs"],
-          ["program", "==", "lego"]
+          [{"field": "reason"}, "==", "programs"],
+          [{"field": "program"}, "==", "lego"]
         ]
       },
       "required": {
         "and": [
-          ["reason", "==", "programs"],
-          ["program", "==", "lego"]
+          [{"field": "reason"}, "==", "programs"],
+          [{"field": "program"}, "==", "lego"]
         ]
       }
     },
@@ -454,8 +453,8 @@
       "label": "Send me updates about future Lego Club meetings",
       "visible": {
         "and": [
-          ["reason", "==", "programs"],
-          ["program", "==", "lego"]
+          [{"field": "reason"}, "==", "programs"],
+          [{"field": "program"}, "==", "lego"]
         ]
       }
     },
@@ -465,15 +464,15 @@
       "name": "message",
       "label": "Additional Information",
       "placeholder": {
-        "if": ["reason", "==", "materials"],
+        "if": [{"field": "reason"}, "==", "materials"],
         "then": "Tell us anything else about the books or materials...",
         "elseif": [
           {
-            "if": ["reason", "==", "technology"],
+            "if": [{"field": "reason"}, "==", "technology"],
             "then": "Tell us anything else about your technology question..."
           },
           {
-            "if": ["reason", "==", "programs"],
+            "if": [{"field": "reason"}, "==", "programs"],
             "then": "Tell us anything else about the program or event..."
           }
         ],

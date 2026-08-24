@@ -102,7 +102,7 @@ class LogicForm extends HTMLElement {
             input.name = f.name;
             if (f.placeholder) {
                 if (this.#isRuleWithReturnValue(f.placeholder)) {
-                    setPlaceholder = () => (input as HTMLInputElement | HTMLTextAreaElement).placeholder = String(this.#resolveRuleWithReturnValue(f.placeholder));
+                    setPlaceholder = () => (input as HTMLInputElement | HTMLTextAreaElement).placeholder = String(this.#resolveRuleWithReturnValue(f.placeholder as RuleWithReturnValue));
                 }
                 else {
                     input.placeholder = f.placeholder;
@@ -1023,14 +1023,14 @@ type FieldBase = {
 type Textbox = FieldBase & {
     type: 'textbox';
     defaultValue?: string | RuleWithReturnValue;
-    placeholder?: string;
+    placeholder?: string | RuleWithReturnValue;
     minLength?: number;
     maxLength?: number;
 }
 
 type Textarea = FieldBase & {
     type: 'textarea';
-    defaultValue?: string;
+    defaultValue?: string | RuleWithReturnValue;
     placeholder?: string;
     minLength?: number;
     maxLength?: number;
@@ -1043,7 +1043,7 @@ type Checkbox = FieldBase & {
 
 type NumericTextbox = FieldBase & {
     type: 'numerictextbox';
-    defaultValue?: string;
+    defaultValue?: string | RuleWithReturnValue;
     placeholder?: string;
     minLength?: number;
     maxLength?: number;
@@ -1160,7 +1160,7 @@ type FieldInternal = {
 // Disabled options
 // Rule-able min and max
 // Radio clear button styling, List button styling
-// in and !in rules
+// in and !in rules don't make sense for determining equal length?
 // Select optgroups
 // Custom errors
 // Combobox input - Can reuse most of my custom one.

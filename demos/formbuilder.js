@@ -35,31 +35,31 @@ const formBuilder = new LogicForm({
             minLength: 1,
             maxLength: 50,
             defaultValue: {
-                if: ['type', '==', 'textbox'],
+                if: [{ field: 'type' }, '==', 'textbox'],
                 then: 'New Textbox',
                 elseif: [
                     {
-                        if: ['type', '==', 'checkbox'],
+                        if: [{ field: 'type' }, '==', 'checkbox'],
                         then: 'New Checkbox',
                     },
                     {
-                        if: ['type', '==', 'textarea'],
+                        if: [{ field: 'type' }, '==', 'textarea'],
                         then: 'New Textarea',
                     },
                     {
-                        if: ['type', '==', 'integer'],
+                        if: [{ field: 'type' }, '==', 'integer'],
                         then: 'New Integer',
                     },
                     {
-                        if: ['type', '==', 'numerictextbox'],
+                        if: [{ field: 'type' }, '==', 'numerictextbox'],
                         then: 'New Numeric Textbox',
                     },
                     {
-                        if: ['type', '==', 'select'],
+                        if: [{ field: 'type' }, '==', 'select'],
                         then: 'New Select',
                     },
                     {
-                        if: ['type', '==', 'list'],
+                        if: [{ field: 'type' }, '==', 'list'],
                         then: 'New List',
                     }
                 ],
@@ -92,10 +92,10 @@ const formBuilder = new LogicForm({
             maxLength: 50,
             visible: {
                 or: [
-                    ['type', '==', 'textbox'],
-                    ['type', '==', 'textarea'],
-                    ['type', '==', 'numerictextbox'],
-                    ['type', '==', 'checkbox'],
+                    [{ field: 'type' }, '==', 'textbox'],
+                    [{ field: 'type' }, '==', 'textarea'],
+                    [{ field: 'type' }, '==', 'numerictextbox'],
+                    [{ field: 'type' }, '==', 'checkbox'],
                 ]
             }
         },
@@ -108,8 +108,8 @@ const formBuilder = new LogicForm({
             defaultValue: {
                 if: {
                     or: [
-                        ['type', '==', 'textbox'],
-                        ['type', '==', 'integer'],
+                        [{ field: 'type' }, '==', 'textbox'],
+                        [{ field: 'type' }, '==', 'integer'],
                     ]
                 },
                 then: 'test',
@@ -117,10 +117,10 @@ const formBuilder = new LogicForm({
             },
             visible: {
                 or: [
-                    ['type', '==', 'textbox'],
-                    ['type', '==', 'textarea'],
-                    ['type', '==', 'integer'],
-                    ['type', '==', 'numerictextbox'],
+                    [{ field: 'type' }, '==', 'textbox'],
+                    [{ field: 'type' }, '==', 'textarea'],
+                    [{ field: 'type' }, '==', 'integer'],
+                    [{ field: 'type' }, '==', 'numerictextbox'],
                 ]
             }
         },
@@ -130,9 +130,9 @@ const formBuilder = new LogicForm({
             label: 'Min Length',
             visible: {
                 or: [
-                    ['type', '==', 'textbox'],
-                    ['type', '==', 'textarea'],
-                    ['type', '==', 'numerictextbox'],
+                    [{ field: 'type' }, '==', 'textbox'],
+                    [{ field: 'type' }, '==', 'textarea'],
+                    [{ field: 'type' }, '==', 'numerictextbox'],
                 ]
             }
         },
@@ -142,9 +142,9 @@ const formBuilder = new LogicForm({
             label: 'Max Length',
             visible: {
                 or: [
-                    ['type', '==', 'textbox'],
-                    ['type', '==', 'textarea'],
-                    ['type', '==', 'numerictextbox'],
+                    [{ field: 'type' }, '==', 'textbox'],
+                    [{ field: 'type' }, '==', 'textarea'],
+                    [{ field: 'type' }, '==', 'numerictextbox'],
                 ]
             }
         },
@@ -154,7 +154,7 @@ const formBuilder = new LogicForm({
             label: 'Options',
             min: 1,
             max: 5,
-            visible: ['type', '==', 'select'],
+            visible: [{ field: 'type' }, '==', 'select'],
         },
         {
             type: 'integer',
@@ -162,8 +162,8 @@ const formBuilder = new LogicForm({
             label: 'Min',
             visible: {
                 or: [
-                    ['type', '==', 'integer'],
-                    ['type', '==', 'list'],
+                    [{ field: 'type' }, '==', 'integer'],
+                    [{ field: 'type' }, '==', 'list'],
                 ]
             }
         },
@@ -173,8 +173,8 @@ const formBuilder = new LogicForm({
             label: 'Max',
             visible: {
                 or: [
-                    ['type', '==', 'integer'],
-                    ['type', '==', 'list'],
+                    [{ field: 'type' }, '==', 'integer'],
+                    [{ field: 'type' }, '==', 'list'],
                 ]
             }
         },

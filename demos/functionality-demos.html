@@ -35,6 +35,56 @@
   }'>
   </logic-form>
 
+  <logic-form id="demo7" data-theme="indigo" data-config='{
+  "title": "Do different things by comparing Field A and B",
+  "fields": [
+    {
+      "type": "integer",
+      "name": "fieldA",
+      "label": "Field A"
+    },
+    {
+      "type": "integer",
+      "name": "fieldB",
+      "label": "Field B"
+    },
+
+    {
+      "type": "textbox",
+      "name": "greaterResult",
+      "label": "Field A is greater",
+      "placeholder": "Field A is greater than Field B",
+      "visible": [
+        {"field": "fieldA"}, ">", {"field": "fieldB"}
+      ]
+    },
+
+    {
+      "type": "select",
+      "name": "equalResult",
+      "label": "Some select. The values are equal",
+      "options": [
+        { "text": "Yes", "value": "yes" },
+        { "text": "No", "value": "no" }
+      ],
+      "visible": [
+        {"field": "fieldA"}, "==", {"field": "fieldB"}
+      ]
+    },
+
+    {
+      "type": "textarea",
+      "name": "lessResult",
+      "label": "Field A is less",
+      "placeholder": "Field A is less than Field B",
+      "visible": [
+        {"field": "fieldA"}, "<", {"field": "fieldB"}
+      ]
+    }
+  ]
+}'>
+  </logic-form>
+
   <logic-form id="demo2" data-theme="green" data-config='{
     "title": "Field is disabled when select is set to option C and checkbox is checked",
     "fields": [
@@ -163,55 +213,7 @@
   }'>
   </logic-form>
 
-  <logic-form id="demo7" data-theme="indigo" data-config='{
-  "title": "Do different things by comparing Field A and B",
-  "fields": [
-    {
-      "type": "integer",
-      "name": "fieldA",
-      "label": "Field A"
-    },
-    {
-      "type": "integer",
-      "name": "fieldB",
-      "label": "Field B"
-    },
 
-    {
-      "type": "textbox",
-      "name": "greaterResult",
-      "label": "Field A is greater",
-      "placeholder": "Field A is greater than Field B",
-      "visible": [
-        {"field": "fieldA"}, ">", {"field": "fieldB"}
-      ]
-    },
-
-    {
-      "type": "select",
-      "name": "equalResult",
-      "label": "Some select. The values are equal",
-      "options": [
-        { "text": "Yes", "value": "yes" },
-        { "text": "No", "value": "no" }
-      ],
-      "visible": [
-        {"field": "fieldA"}, "==", {"field": "fieldB"}
-      ]
-    },
-
-    {
-      "type": "textarea",
-      "name": "lessResult",
-      "label": "Field A is less",
-      "placeholder": "Field A is less than Field B",
-      "visible": [
-        {"field": "fieldA"}, "<", {"field": "fieldB"}
-      ]
-    }
-  ]
-}'>
-  </logic-form>
 
   <logic-form id="demo8" data-theme="pink" data-config='{
   "title": "Show different fields based on the number of items entered",
@@ -254,6 +256,84 @@
       ],
       "visible": [
         {"field": "fieldA"}, "==", 3
+      ]
+    }
+  ]
+}'>
+  </logic-form>
+
+  <logic-form id="demo6" data-theme="gold" data-config='{
+  "title": "Update labels and placeholders by comparing a string value to an array value",
+  "fields": [
+    {
+      "type": "select",
+      "name": "fieldA",
+      "label": "Select field",
+      "options": [
+        { "text": "Red", "value": "red" },
+        { "text": "Blue", "value": "blue" },
+        { "text": "Green", "value": "green" },
+        { "text": "Yellow", "value": "yellow" }
+      ]
+    },
+    {
+      "type": "checkboxgroup",
+      "name": "fieldB",
+      "label": "Checkboxgroup (array)",
+      "options": [
+        { "text": "Red", "value": "red" },
+        { "text": "Blue", "value": "blue" },
+        { "text": "Green", "value": "green" },
+        { "text": "Yellow", "value": "yellow" }
+      ]
+    },
+    {
+      "type": "textarea",
+      "name": "fieldC",
+      "label": {
+        "if": [{"field": "fieldA"}, "in", {"field": "fieldB"}],
+        "then": "You selected a matching option",
+        "else": "No matching option selected"
+      },
+      "placeholder": {
+        "if": [{"field": "fieldA"}, "in", {"field": "fieldB"}],
+        "then": "Tell us why this option is a favorite...",
+        "else": "Tell us why you chose a different option..."
+      }
+    }
+  ]
+}'>
+  </logic-form>
+
+  <logic-form id="demo" data-theme="purple" data-config='{
+  "title": "Show a field when the checkbox selections exactly match the list",
+  "fields": [
+    {
+      "type": "checkboxgroup",
+      "name": "fieldA",
+      "label": "Select the required items",
+      "options": [
+        { "text": "red", "value": "red" },
+        { "text": "blue", "value": "blue" },
+        { "text": "green", "value": "green" }
+      ]
+    },
+    {
+      "type": "list",
+      "name": "fieldB",
+      "label": "Enter the items",
+      "min": 1,
+      "max": 3
+    },
+    {
+      "type": "textarea",
+      "name": "fieldC",
+      "label": "Exact Match",
+      "placeholder": "The two values match exactly.",
+      "visible": [
+        { "field": "fieldA" },
+        "==",
+        { "field": "fieldB" }
       ]
     }
   ]
