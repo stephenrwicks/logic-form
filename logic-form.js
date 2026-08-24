@@ -30,9 +30,6 @@ class LogicForm extends HTMLElement {
     #isDecimal(val) {
         return this.#isNumeric(val) && !Number.isSafeInteger(val);
     }
-    #isVarRef(val) {
-        return !!val && typeof val === 'object' && 'var' in val && typeof val.var === 'string';
-    }
     #isRuleWithReturnValue(val) {
         return !!val && typeof val === 'object' && 'if' in val && 'then' in val && typeof val.if === 'object';
     }
@@ -223,9 +220,6 @@ class LogicForm extends HTMLElement {
                     const resolved = String(this.#resolveRuleWithReturnValue(f.defaultValue));
                     for (const option of input.options) {
                         option.defaultSelected = option.value === resolved && validValues.has(resolved);
-                    }
-                    if (!internals.isTouched) {
-                        console.log('aaa');
                     }
                 }
             };
@@ -576,8 +570,6 @@ class LogicForm extends HTMLElement {
             return;
         }
         console.info(`Updated the form state in ${this.#updatePasses} ${this.#updatePasses > 1 ? 'passes' : 'pass'}.`);
-        const renderer = (el) => {
-        };
         let latestVisibleItem = null;
         for (const f of Object.values(this.#fields)) {
             const wasVisibleBefore = this.#visibilityMemo[f.name];
@@ -626,68 +618,55 @@ class LogicForm extends HTMLElement {
     #evaluateBooleanProperty(propertyVal, defaultValue) {
         if (typeof propertyVal === 'boolean')
             return propertyVal;
-        if (Array.isArray(propertyVal))
-            return propertyVal.every(rule => this.#evaluateBooleanRule(rule));
         if (typeof propertyVal === 'object' && !!propertyVal)
             return this.#evaluateBooleanRule(propertyVal);
         return defaultValue;
     }
     ;
     #evaluateBooleanRule(rule) {
-        if ('==' in rule) {
-            const [left, right] = rule['=='];
-            const side1 = this.#readRuleSide(left);
-            const side2 = this.#readRuleSide(right);
-            if (Array.isArray(side1) && Array.isArray(side2))
-                return this.#isFlatStringArrayEqual(side1, side2);
-            return side1 === side2;
-        }
-        if ('!=' in rule) {
-            const [left, right] = rule['!='];
-            const side1 = this.#readRuleSide(left);
-            const side2 = this.#readRuleSide(right);
-            if (Array.isArray(side1) && Array.isArray(side2))
-                return this.#isFlatStringArrayEqual(side1, side2) === false;
-            return side1 !== side2;
-        }
-        if ('>' in rule) {
-            const [left, right] = rule['>'];
-            return this.#readRuleSide(left) > this.#readRuleSide(right);
-        }
-        if ('<' in rule) {
-            const [left, right] = rule['<'];
-            return this.#readRuleSide(left) < this.#readRuleSide(right);
-        }
-        if ('>=' in rule) {
-            const [left, right] = rule['>='];
-            return this.#readRuleSide(left) >= this.#readRuleSide(right);
-        }
-        if ('<=' in rule) {
-            const [left, right] = rule['<='];
-            return this.#readRuleSide(left) <= this.#readRuleSide(right);
-        }
-        if ('in' in rule) {
-            const [left, right] = rule['in'];
-            return this.#readRuleSide(left) <= this.#readRuleSide(right);
-        }
-        if ('not' in rule) {
-            return this.#evaluateBooleanRule(rule.not) === false;
-        }
-        if ('and' in rule) {
+        const isArray = Array.isArray(rule);
+        if (!isArray && 'and' in rule) {
             return rule.and.every((r) => this.#evaluateBooleanRule(r));
         }
-        if ('or' in rule) {
-            return rule.or.some((r) => this.#evaluateBooleanRule(r));
+        if (!isArray && 'or' in rule) {
+            return rule.or.every((r) => this.#evaluateBooleanRule(r));
+        }
+        if (!isArray && 'not' in rule) {
+            return !this.#evaluateBooleanRule(rule.not);
+        }
+        const [string, operator, value] = rule;
+        const thing = this.#fields[string].value;
+        if (operator === '==') {
+            if (Array.isArray(thing) && Array.isArray(value))
+                return this.#isFlatStringArrayEqual(thing, value);
+            return thing === value;
+        }
+        if (operator === '!=') {
+            if (Array.isArray(thing) && Array.isArray(value))
+                return !this.#isFlatStringArrayEqual(thing, value);
+            return thing !== value;
+        }
+        if (operator === '>') {
+            return thing > value;
+        }
+        if (operator === '<') {
+            return thing < value;
+        }
+        if (operator === '>=') {
+            return thing >= value;
+        }
+        if (operator === '<=') {
+            return thing <= value;
+        }
+        if ('in' in rule) {
+            return (Array.isArray(value) && value.includes(thing));
+        }
+        if ('!in' in rule) {
+            return (Array.isArray(value) && !value.includes(thing));
         }
         return true;
     }
     ;
-    #readRuleSide(side) {
-        if (this.#isVarRef(side)) {
-            return this.#fields[side.var].value;
-        }
-        return side;
-    }
     #dispatchUpdateEvent(input) {
         if (typeof input === 'string') {
             this.form.dispatchEvent(new CustomEvent('logic-form-update', { bubbles: true, detail: { input } }));

@@ -60,12 +60,8 @@
         { "text": "Phone Number", "value": "phone" },
         { "text": "Preferred Name", "value": "name" }
       ],
-      "visible": [
-        { "==": [{ "var": "reason" }, "account"] }
-      ],
-      "required": [
-        { "==": [{ "var": "reason" }, "account"] }
-      ]
+      "visible": ["reason", "==", "account"],
+      "required": ["reason", "==", "account"]
     },
     {
       "type": "textbox",
@@ -73,22 +69,18 @@
       "label": "New Mailing Address",
       "value": "",
       "placeholder": "Enter your new address",
-      "visible": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "account"] },
-            { "==": [{ "var": "accountIssue" }, "address"] }
-          ]
-        }
-      ],
-      "required": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "account"] },
-            { "==": [{ "var": "accountIssue" }, "address"] }
-          ]
-        }
-      ]
+      "visible": {
+        "and": [
+          ["reason", "==", "account"],
+          ["accountIssue", "==", "address"]
+        ]
+      },
+      "required": {
+        "and": [
+          ["reason", "==", "account"],
+          ["accountIssue", "==", "address"]
+        ]
+      }
     },
     {
       "type": "textbox",
@@ -96,22 +88,18 @@
       "label": "New Email Address",
       "value": "",
       "placeholder": "Enter your new email address",
-      "visible": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "account"] },
-            { "==": [{ "var": "accountIssue" }, "email"] }
-          ]
-        }
-      ],
-      "required": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "account"] },
-            { "==": [{ "var": "accountIssue" }, "email"] }
-          ]
-        }
-      ]
+      "visible": {
+        "and": [
+          ["reason", "==", "account"],
+          ["accountIssue", "==", "email"]
+        ]
+      },
+      "required": {
+        "and": [
+          ["reason", "==", "account"],
+          ["accountIssue", "==", "email"]
+        ]
+      }
     },
     {
       "type": "textbox",
@@ -119,22 +107,18 @@
       "label": "New Phone Number",
       "value": "",
       "placeholder": "Enter your new phone number",
-      "visible": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "account"] },
-            { "==": [{ "var": "accountIssue" }, "phone"] }
-          ]
-        }
-      ],
-      "required": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "account"] },
-            { "==": [{ "var": "accountIssue" }, "phone"] }
-          ]
-        }
-      ]
+      "visible": {
+        "and": [
+          ["reason", "==", "account"],
+          ["accountIssue", "==", "phone"]
+        ]
+      },
+      "required": {
+        "and": [
+          ["reason", "==", "account"],
+          ["accountIssue", "==", "phone"]
+        ]
+      }
     },
     {
       "type": "textbox",
@@ -142,22 +126,18 @@
       "label": "Preferred Name",
       "value": "",
       "placeholder": "Enter your preferred name",
-      "visible": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "account"] },
-            { "==": [{ "var": "accountIssue" }, "name"] }
-          ]
-        }
-      ],
-      "required": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "account"] },
-            { "==": [{ "var": "accountIssue" }, "name"] }
-          ]
-        }
-      ]
+      "visible": {
+        "and": [
+          ["reason", "==", "account"],
+          ["accountIssue", "==", "name"]
+        ]
+      },
+      "required": {
+        "and": [
+          ["reason", "==", "account"],
+          ["accountIssue", "==", "name"]
+        ]
+      }
     },
     {
       "type": "select",
@@ -171,12 +151,8 @@
         { "text": "Renew an Item", "value": "renew" },
         { "text": "Report a Missing or Damaged Item", "value": "damaged" }
       ],
-      "visible": [
-        { "==": [{ "var": "reason" }, "materials"] }
-      ],
-      "required": [
-        { "==": [{ "var": "reason" }, "materials"] }
-      ]
+      "visible": ["reason", "==", "materials"],
+      "required": ["reason", "==", "materials"]
     },
     {
       "type": "textbox",
@@ -184,22 +160,18 @@
       "label": "What are you looking for?",
       "value": "",
       "placeholder": "Title, author, subject, or ISBN",
-      "visible": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "materials"] },
-            { "==": [{ "var": "materialIssue" }, "find"] }
-          ]
-        }
-      ],
-      "required": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "materials"] },
-            { "==": [{ "var": "materialIssue" }, "find"] }
-          ]
-        }
-      ]
+      "visible": {
+        "and": [
+          ["reason", "==", "materials"],
+          ["materialIssue", "==", "find"]
+        ]
+      },
+      "required": {
+        "and": [
+          ["reason", "==", "materials"],
+          ["materialIssue", "==", "find"]
+        ]
+      }
     },
     {
       "type": "list",
@@ -208,22 +180,18 @@
       "value": [],
       "min": 1,
       "max": 5,
-      "visible": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "materials"] },
-            { "==": [{ "var": "materialIssue" }, "request"] }
-          ]
-        }
-      ],
-      "required": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "materials"] },
-            { "==": [{ "var": "materialIssue" }, "request"] }
-          ]
-        }
-      ]
+      "visible": {
+        "and": [
+          ["reason", "==", "materials"],
+          ["materialIssue", "==", "request"]
+        ]
+      },
+      "required": {
+        "and": [
+          ["reason", "==", "materials"],
+          ["materialIssue", "==", "request"]
+        ]
+      }
     },
     {
       "type": "radiogroup",
@@ -236,22 +204,18 @@
         { "text": "DVD", "value": "dvd" },
         { "text": "CD / Audiobook", "value": "audio" }
       ],
-      "visible": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "materials"] },
-            { "==": [{ "var": "materialIssue" }, "request"] }
-          ]
-        }
-      ],
-      "required": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "materials"] },
-            { "==": [{ "var": "materialIssue" }, "request"] }
-          ]
-        }
-      ]
+      "visible": {
+        "and": [
+          ["reason", "==", "materials"],
+          ["materialIssue", "==", "request"]
+        ]
+      },
+      "required": {
+        "and": [
+          ["reason", "==", "materials"],
+          ["materialIssue", "==", "request"]
+        ]
+      }
     },
     {
       "type": "textbox",
@@ -259,22 +223,18 @@
       "label": "Item to Renew",
       "value": "",
       "placeholder": "Title or barcode",
-      "visible": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "materials"] },
-            { "==": [{ "var": "materialIssue" }, "renew"] }
-          ]
-        }
-      ],
-      "required": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "materials"] },
-            { "==": [{ "var": "materialIssue" }, "renew"] }
-          ]
-        }
-      ]
+      "visible": {
+        "and": [
+          ["reason", "==", "materials"],
+          ["materialIssue", "==", "renew"]
+        ]
+      },
+      "required": {
+        "and": [
+          ["reason", "==", "materials"],
+          ["materialIssue", "==", "renew"]
+        ]
+      }
     },
     {
       "type": "textbox",
@@ -282,22 +242,18 @@
       "label": "Missing or Damaged Item",
       "value": "",
       "placeholder": "Title or barcode",
-      "visible": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "materials"] },
-            { "==": [{ "var": "materialIssue" }, "damaged"] }
-          ]
-        }
-      ],
-      "required": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "materials"] },
-            { "==": [{ "var": "materialIssue" }, "damaged"] }
-          ]
-        }
-      ]
+      "visible": {
+        "and": [
+          ["reason", "==", "materials"],
+          ["materialIssue", "==", "damaged"]
+        ]
+      },
+      "required": {
+        "and": [
+          ["reason", "==", "materials"],
+          ["materialIssue", "==", "damaged"]
+        ]
+      }
     },
     {
       "type": "select",
@@ -313,12 +269,8 @@
         { "text": "Printing or Scanning", "value": "printing" },
         { "text": "Wi-Fi", "value": "wifi" }
       ],
-      "visible": [
-        { "==": [{ "var": "reason" }, "technology"] }
-      ],
-      "required": [
-        { "==": [{ "var": "reason" }, "technology"] }
-      ]
+      "visible": ["reason", "==", "technology"],
+      "required": ["reason", "==", "technology"]
     },
     {
       "type": "select",
@@ -334,22 +286,18 @@
         { "text": "Mac", "value": "mac" },
         { "text": "Other", "value": "other" }
       ],
-      "visible": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "technology"] },
-            { "==": [{ "var": "technologyType" }, "ebooks"] }
-          ]
-        }
-      ],
-      "required": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "technology"] },
-            { "==": [{ "var": "technologyType" }, "ebooks"] }
-          ]
-        }
-      ]
+      "visible": {
+        "and": [
+          ["reason", "==", "technology"],
+          ["technologyType", "==", "ebooks"]
+        ]
+      },
+      "required": {
+        "and": [
+          ["reason", "==", "technology"],
+          ["technologyType", "==", "ebooks"]
+        ]
+      }
     },
     {
       "type": "select",
@@ -363,23 +311,19 @@
         { "text": "Cannot Sign In", "value": "login" },
         { "text": "Book Expired", "value": "expired" }
       ],
-      "visible": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "technology"] },
-            { "==": [{ "var": "technologyType" }, "ebooks"] }
-          ]
-        }
-      ],
-      "required": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "technology"] },
-            { "==": [{ "var": "technologyType" }, "ebooks"] },
-            { "!=": [{ "var": "ebookDevice" }, ""] }
-          ]
-        }
-      ]
+      "visible": {
+        "and": [
+          ["reason", "==", "technology"],
+          ["technologyType", "==", "ebooks"]
+        ]
+      },
+      "required": {
+        "and": [
+          ["reason", "==", "technology"],
+          ["technologyType", "==", "ebooks"],
+          ["ebookDevice", "!=", ""]
+        ]
+      }
     },
     {
       "type": "select",
@@ -393,22 +337,18 @@
         { "text": "Internet Is Not Working", "value": "internet" },
         { "text": "Need Help Using Software", "value": "software" }
       ],
-      "visible": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "technology"] },
-            { "==": [{ "var": "technologyType" }, "computer"] }
-          ]
-        }
-      ],
-      "required": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "technology"] },
-            { "==": [{ "var": "technologyType" }, "computer"] }
-          ]
-        }
-      ]
+      "visible": {
+        "and": [
+          ["reason", "==", "technology"],
+          ["technologyType", "==", "computer"]
+        ]
+      },
+      "required": {
+        "and": [
+          ["reason", "==", "technology"],
+          ["technologyType", "==", "computer"]
+        ]
+      }
     },
     {
       "type": "textbox",
@@ -416,22 +356,18 @@
       "label": "What are you trying to print or scan?",
       "value": "",
       "placeholder": "Describe the document or task",
-      "visible": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "technology"] },
-            { "==": [{ "var": "technologyType" }, "printing"] }
-          ]
-        }
-      ],
-      "required": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "technology"] },
-            { "==": [{ "var": "technologyType" }, "printing"] }
-          ]
-        }
-      ]
+      "visible": {
+        "and": [
+          ["reason", "==", "technology"],
+          ["technologyType", "==", "printing"]
+        ]
+      },
+      "required": {
+        "and": [
+          ["reason", "==", "technology"],
+          ["technologyType", "==", "printing"]
+        ]
+      }
     },
     {
       "type": "textbox",
@@ -439,22 +375,18 @@
       "label": "What device are you trying to connect?",
       "value": "",
       "placeholder": "Laptop, phone, tablet, etc.",
-      "visible": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "technology"] },
-            { "==": [{ "var": "technologyType" }, "wifi"] }
-          ]
-        }
-      ],
-      "required": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "technology"] },
-            { "==": [{ "var": "technologyType" }, "wifi"] }
-          ]
-        }
-      ]
+      "visible": {
+        "and": [
+          ["reason", "==", "technology"],
+          ["technologyType", "==", "wifi"]
+        ]
+      },
+      "required": {
+        "and": [
+          ["reason", "==", "technology"],
+          ["technologyType", "==", "wifi"]
+        ]
+      }
     },
     {
       "type": "radiogroup",
@@ -468,12 +400,8 @@
         { "text": "Craft Program", "value": "crafts" },
         { "text": "Other Program", "value": "other" }
       ],
-      "visible": [
-        { "==": [{ "var": "reason" }, "programs"] }
-      ],
-      "required": [
-        { "==": [{ "var": "reason" }, "programs"] }
-      ]
+      "visible": ["reason", "==", "programs"],
+      "required": ["reason", "==", "programs"]
     },
     {
       "type": "select",
@@ -486,43 +414,35 @@
         { "text": "Book Selection", "value": "book" },
         { "text": "Registration", "value": "registration" }
       ],
-      "visible": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "programs"] },
-            { "==": [{ "var": "programName" }, "bookclub"] }
-          ]
-        }
-      ],
-      "required": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "programs"] },
-            { "==": [{ "var": "programName" }, "bookclub"] }
-          ]
-        }
-      ]
+      "visible": {
+        "and": [
+          ["reason", "==", "programs"],
+          ["programName", "==", "bookclub"]
+        ]
+      },
+      "required": {
+        "and": [
+          ["reason", "==", "programs"],
+          ["programName", "==", "bookclub"]
+        ]
+      }
     },
     {
       "type": "date",
       "name": "storyTimeDate",
       "label": "Preferred Story Time Date",
-      "visible": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "programs"] },
-            { "==": [{ "var": "programName" }, "storytime"] }
-          ]
-        }
-      ],
-      "required": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "programs"] },
-            { "==": [{ "var": "programName" }, "storytime"] }
-          ]
-        }
-      ]
+      "visible": {
+        "and": [
+          ["reason", "==", "programs"],
+          ["programName", "==", "storytime"]
+        ]
+      },
+      "required": {
+        "and": [
+          ["reason", "==", "programs"],
+          ["programName", "==", "storytime"]
+        ]
+      }
     },
     {
       "type": "select",
@@ -535,22 +455,18 @@
         { "text": "Intermediate", "value": "intermediate" },
         { "text": "Advanced", "value": "advanced" }
       ],
-      "visible": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "programs"] },
-            { "==": [{ "var": "programName" }, "computerworkshop"] }
-          ]
-        }
-      ],
-      "required": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "programs"] },
-            { "==": [{ "var": "programName" }, "computerworkshop"] }
-          ]
-        }
-      ]
+      "visible": {
+        "and": [
+          ["reason", "==", "programs"],
+          ["programName", "==", "computerworkshop"]
+        ]
+      },
+      "required": {
+        "and": [
+          ["reason", "==", "programs"],
+          ["programName", "==", "computerworkshop"]
+        ]
+      }
     },
     {
       "type": "textbox",
@@ -558,22 +474,18 @@
       "label": "What craft are you asking about?",
       "value": "",
       "placeholder": "Describe the craft or supplies",
-      "visible": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "programs"] },
-            { "==": [{ "var": "programName" }, "crafts"] }
-          ]
-        }
-      ],
-      "required": [
-        {
-          "and": [
-            { "==": [{ "var": "reason" }, "programs"] },
-            { "==": [{ "var": "programName" }, "crafts"] }
-          ]
-        }
-      ]
+      "visible": {
+        "and": [
+          ["reason", "==", "programs"],
+          ["programName", "==", "crafts"]
+        ]
+      },
+      "required": {
+        "and": [
+          ["reason", "==", "programs"],
+          ["programName", "==", "crafts"]
+        ]
+      }
     },
     {
       "type": "textarea",
@@ -581,41 +493,40 @@
       "label": "Message",
       "value": "",
       "placeholder": "Tell us anything else we should know",
-      "visible": [
-        {
-          "or": [
-            {
-              "and": [
-                { "==": [{ "var": "reason" }, "account"] },
-                { "!=": [{ "var": "accountIssue" }, ""] }
-              ]
-            },
-            {
-              "and": [
-                { "==": [{ "var": "reason" }, "materials"] },
-                { "!=": [{ "var": "materialIssue" }, ""] }
-              ]
-            },
-            {
-              "and": [
-                { "==": [{ "var": "reason" }, "technology"] },
-                { "!=": [{ "var": "technologyType" }, ""] }
-              ]
-            },
-            {
-              "and": [
-                { "==": [{ "var": "reason" }, "programs"] },
-                { "!=": [{ "var": "programName" }, ""] }
-              ]
-            },
-            { "==": [{ "var": "reason" }, "other"] }
-          ]
-        }
-      ],
+      "visible": {
+        "or": [
+          {
+            "and": [
+              ["reason", "==", "account"],
+              ["accountIssue", "!=", ""]
+            ]
+          },
+          {
+            "and": [
+              ["reason", "==", "materials"],
+              ["materialIssue", "!=", ""]
+            ]
+          },
+          {
+            "and": [
+              ["reason", "==", "technology"],
+              ["technologyType", "!=", ""]
+            ]
+          },
+          {
+            "and": [
+              ["reason", "==", "programs"],
+              ["programName", "!=", ""]
+            ]
+          },
+          ["reason", "==", "other"]
+        ]
+      },
       "required": true
     }
   ]
-}'></logic-form>
+}'>
+</logic-form>
 
   <script>
     const x = document.querySelector('logic-form');
