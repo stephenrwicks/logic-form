@@ -563,7 +563,7 @@ class LogicForm extends HTMLElement {
             return [];
         return '';
     }
-    #interpolation(str) {
+    #interpolate(str) {
         const a = str.indexOf('{{');
         const b = str.indexOf('}}');
         if (a === -1)
