@@ -113,6 +113,10 @@ logic-form {
         color: var(--white);
     }
 
+    /* *:user-invalid {
+        border-color: var(--danger) !important;
+    } */
+
     >form {
 
         display: grid;

@@ -85,6 +85,12 @@ const formBuilder = new LogicForm({
             defaultValue: false
         },
         {
+            type: 'checkbox',
+            name: 'readonly',
+            label: 'Readonly',
+            defaultValue: false
+        },
+        {
             type: 'textbox',
             name: 'defaultValue',
             label: 'Default Value',
@@ -189,6 +195,7 @@ htmlDiv.style.gridColumn = 'span 2';
 const update = () => {
     // Is only one field at the moment but with repeatable sections this could be Field[]
     const formBuilderValue = formBuilder.getValue() as Field;
+
     sampleForm.setConfig({
         title: 'Generated Form',
         fields: [
@@ -217,7 +224,7 @@ update();
 
 const getterButton = document.createElement('button');
 getterButton.addEventListener('click', () => {
-    console.log((document.querySelector('#sample-form') as LogicForm).$[formBuilder.$.name]);
+    console.log((document.querySelector<LogicForm>('#sample-form'))!.$[formBuilder.$.name]);
 });
 
 getterButton.textContent = `Fire a getter to show the value of the sample field: console.log(document.querySelector('#sample-form').$.${formBuilder.$.name});`;

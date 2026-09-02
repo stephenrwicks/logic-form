@@ -61,12 +61,16 @@ class LogicForm extends HTMLElement {
         if (f.type !== 'decimal' && this.#isNumeric(f.max)) f.max = Math.floor(f.max);
         if (this.#isNumeric(f.min) && f.min < 0) f.min = 0;
         if (this.#isNumeric(f.max) && f.max < 1) f.max = 1;
-
     };
 
     #buildField(f: Field) {
 
         if (f.name in this.#fields) throw new Error(`"${f.name}" exists in the config twice. Can't have two fields named the same.`);
+        const whiteSpaceBlocker = () => input.setCustomValidity(!!getValue() ? '' : 'This field is required.');
+        this.#fixMinMax(f);
+        //this.#fixMinlengthMaxlength(f);
+
+        let eventToListenFor: 'change' | 'input' = 'change';
         const id = `_${f.type}_${crypto.randomUUID()}`;
         const div = document.createElement('div');
         div.dataset.fieldName = f.name;
@@ -75,24 +79,55 @@ class LogicForm extends HTMLElement {
         const labelSpan = document.createElement('span');
         const requiredSpan = document.createElement('span');
         label.htmlFor = id;
-        //labelSpan.textContent = f.label.trim();
-        const isLabelRule = this.#isRuleWithReturnValue(f.label);
-        if (!isLabelRule && typeof f.label === 'string') {
-            labelSpan.textContent = f.label.trim();
-        }
         requiredSpan.textContent = ' *';
         requiredSpan.ariaHidden = 'true';
         label.replaceChildren(labelSpan, requiredSpan);
         let input: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | HTMLFieldSetElement;
+
         let getValue: () => Value;
         let setValue: (val: any) => void;
+
+        // Plain booleans:
         let setRequired: (bool: boolean) => void;
+        let setReadonly: (bool: boolean) => void;
+
+        // Properties that could be rules have a return value:
+        let setLabel: () => void;
         let setDefaultValue: () => void;
         let setPlaceholder: () => void;
-        let eventToListenFor: 'change' | 'input' = 'change';
-        const whiteSpaceBlocker = () => input.setCustomValidity(!!getValue() ? '' : 'This field is required.');
-        this.#fixMinMax(f);
-        //this.#fixMinlengthMaxlength(f);
+        let setMin: () => void;
+        let setMax: () => void;
+        let setMinLength: () => void;
+        let setMaxLength: () => void;
+
+        // const ruleSetup = {
+        //     hasLabelRule: 'label' in f && this.#isRuleWithReturnValue(f.label),
+        //     hasDefaultValueRule: 'defaultValue' in f && this.#isRuleWithReturnValue(f.defaultValue),
+        //     hasPlaceholderRule: 'placeholder' in f && this.#isRuleWithReturnValue(f.placeholder),
+        //     hasMinRule: 'min' in f && this.#isRuleWithReturnValue(f.min),
+        //     hasMaxRule: 'max' in f && this.#isRuleWithReturnValue(f.max),
+        //     hasMinLengthRule: 'minLength' in f && this.#isRuleWithReturnValue(f.minLength),
+        //     hasMaxLengthRule: 'maxLength' in f && this.#isRuleWithReturnValue(f.maxLength),
+        // };
+
+        const hasLabelRule = 'label' in f && this.#isRuleWithReturnValue(f.label);
+        const hasDefaultValueRule = 'defaultValue' in f && this.#isRuleWithReturnValue(f.defaultValue);
+        const hasPlaceholderRule = 'placeholder' in f && this.#isRuleWithReturnValue(f.placeholder);
+        const hasMinRule = 'min' in f && this.#isRuleWithReturnValue(f.min);
+        const hasMaxRule = 'max' in f && this.#isRuleWithReturnValue(f.max);
+        const hasMinLengthRule = 'minLength' in f && this.#isRuleWithReturnValue(f.minLength);
+        const hasMaxLengthRule = 'maxLength' in f && this.#isRuleWithReturnValue(f.maxLength);
+
+        // Use this same pattern for each of these. Define the function if it is a rule. Otherwise, just set it.
+        if (hasLabelRule) {
+            setLabel = () => {
+                labelSpan.textContent = String(this.#resolveRuleWithReturnValue(f.label as RuleWithReturnValue)) ?? '';
+            };
+        }
+        else if (typeof f.label === 'string') {
+            f.label = f.label.trim();
+            labelSpan.textContent = f.label as string;
+        }
 
         if (f.type === 'textbox' || f.type === 'textarea' || f.type === 'numerictextbox') {
             eventToListenFor = 'input'
@@ -100,30 +135,44 @@ class LogicForm extends HTMLElement {
             if (f.type === 'textbox' || f.type === 'numerictextbox') (input as HTMLInputElement).type = 'text';
             input.id = id;
             input.name = f.name;
-            if (f.placeholder) {
-                if (this.#isRuleWithReturnValue(f.placeholder)) {
-                    setPlaceholder = () => (input as HTMLInputElement | HTMLTextAreaElement).placeholder = String(this.#resolveRuleWithReturnValue(f.placeholder as RuleWithReturnValue));
-                }
-                else {
-                    input.placeholder = f.placeholder;
-                }
-
-            }
             if (f.maxLength && this.#isInteger(f.maxLength)) input.maxLength = f.maxLength;
             if (f.minLength && this.#isInteger(f.minLength)) input.minLength = f.minLength;
             div.replaceChildren(label, input);
             getValue = () => (input as (HTMLInputElement | HTMLTextAreaElement)).value.trim();
-            setDefaultValue = () => {
-                if (typeof f.defaultValue === 'string' || typeof f.defaultValue === 'number') {
-                    (input as (HTMLInputElement | HTMLTextAreaElement)).defaultValue = String(f.defaultValue);
+
+            if (hasDefaultValueRule) {
+                setDefaultValue = () => {
+                    (input as (HTMLInputElement | HTMLTextAreaElement)).defaultValue = String(this.#resolveRuleWithReturnValue(f.defaultValue as RuleWithReturnValue));
+                };
+            }
+            else if (typeof f.defaultValue === 'string' || typeof f.defaultValue === 'number') {
+                (input as (HTMLInputElement | HTMLTextAreaElement)).defaultValue = String(f.defaultValue || '');
+            }
+            if (hasPlaceholderRule) {
+                setPlaceholder = () => {
+                    (input as HTMLInputElement | HTMLTextAreaElement).placeholder = String(this.#resolveRuleWithReturnValue(f.placeholder as RuleWithReturnValue));
                 }
-                else if (this.#isRuleWithReturnValue(f.defaultValue)) {
-                    (input as (HTMLInputElement | HTMLTextAreaElement)).defaultValue = String(this.#resolveRuleWithReturnValue(f.defaultValue));
+            }
+            else if (typeof f.placeholder === 'string') {
+                input.placeholder = f.placeholder;
+            }
+            if (hasMinLengthRule) {
+                setMinLength = () => {
+                    (input as HTMLInputElement | HTMLTextAreaElement).minLength = Number(this.#resolveRuleWithReturnValue(f.minLength as RuleWithReturnValue));
                 }
-                else {
-                    (input as (HTMLInputElement | HTMLTextAreaElement)).defaultValue = '';
+            }
+            else if (this.#isInteger(f.minLength)) {
+                input.minLength = Number(f.minLength);
+            }
+            if (hasMaxLengthRule) {
+                setMaxLength = () => {
+                    (input as HTMLInputElement | HTMLTextAreaElement).maxLength = Number(this.#resolveRuleWithReturnValue(f.maxLength as RuleWithReturnValue));
                 }
-            };
+            }
+            else if (this.#isInteger(f.maxLength)) {
+                input.maxLength = Number(f.maxLength);
+            }
+
             setValue = (val: string) => {
                 (input as (HTMLInputElement | HTMLTextAreaElement)).value = typeof val === 'string' ? val.trim() : '';
             };
@@ -132,15 +181,17 @@ class LogicForm extends HTMLElement {
                 // Prevent user from entering a space to bypass required. We could use "pattern" on textboxes but not textareas.
                 if (!!bool) input.addEventListener('input', whiteSpaceBlocker);
             };
+            setReadonly = (bool) => {
+                (input as (HTMLInputElement | HTMLTextAreaElement)).readOnly = !!bool;
+            };
 
 
             if (f.type === 'numerictextbox') {
+                // todo
                 input.inputMode = 'numeric';
                 (input as HTMLInputElement).addEventListener('input', (e) => {
                     const data = (e as any).data;
                     if (!data) return;
-
-
                 });
                 (input as HTMLInputElement).addEventListener('keydown', (e) => {
                     if (this.#integerAllowedKeys.has(e.key)) return;
@@ -153,14 +204,10 @@ class LogicForm extends HTMLElement {
             input.id = id;
             input.name = f.name;
             input.type = 'checkbox';
-            setDefaultValue = () => {
-                // I don't see how a conditional if rule works for default value for a checkbox
-                (input as HTMLInputElement).defaultChecked = !!f.defaultValue;
-            };
+            input.defaultChecked = !!f.defaultValue;
             const wrapperSpan = document.createElement('span');
             wrapperSpan.replaceChildren(labelSpan, requiredSpan);
             label.replaceChildren(input, wrapperSpan);
-            // label.style.display = 'flex';
             div.replaceChildren(label);
             getValue = () => !!(input as HTMLInputElement).checked;
             setValue = (val) => (input as HTMLInputElement).checked = !!val;
@@ -174,25 +221,51 @@ class LogicForm extends HTMLElement {
             input.id = id;
             input.name = f.name;
             input.type = 'number';
-            input.placeholder = f.placeholder ?? '';
-            const hasMin = this.#isNumeric(f.min);
-            const hasMax = this.#isNumeric(f.max);
-            if (this.#isNumeric(f.defaultValue)) {
-                input.defaultValue = String(f.defaultValue);
+
+
+
+            if (hasDefaultValueRule) {
+                setDefaultValue = () => {
+                    (input as (HTMLInputElement | HTMLTextAreaElement)).defaultValue = String(this.#resolveRuleWithReturnValue(f.defaultValue as RuleWithReturnValue));
+                };
             }
-            if (hasMin && hasMax && f.min! > f.max!) {
-                f.max = f.min;
+            else if (typeof f.defaultValue === 'string' || typeof f.defaultValue === 'number' && this.#isNumeric(f.defaultValue)) {
+                (input as (HTMLInputElement | HTMLTextAreaElement)).defaultValue = String(f.defaultValue || '');
             }
-            if (hasMax) {
-                input.max = String(Math.floor(f.max!));
-                //input.maxLength = input.max.length; // Doesn't work. Needs keydown handler
+            if (hasPlaceholderRule) {
+                setPlaceholder = () => {
+                    (input as HTMLInputElement).placeholder = String(this.#resolveRuleWithReturnValue(f.placeholder as RuleWithReturnValue));
+                }
             }
-            if (hasMin) {
-                input.min = String(Math.floor(f.min!));
-                //if (f.min > 0) input.minLength = input.min.length;
+            else if (typeof f.placeholder === 'string') {
+                input.placeholder = f.placeholder;
             }
-            // set value somewhere
-            // Keydown and input handlers to fix int and dec
+
+            // const hasMin = this.#isNumeric(f.min);
+            // const hasMax = this.#isNumeric(f.max);
+
+            if (hasMinRule) {
+                setMin = () => {
+                    const min = this.#resolveRuleWithReturnValue(f.min as RuleWithReturnValue);
+                    (input as HTMLInputElement).min = this.#isInteger(min) ? String(min) : '';
+                }
+            }
+            else {
+                (input as HTMLInputElement).min = this.#isInteger(f.min) ? String(f.min) : '';
+            }
+            if (hasMaxRule) {
+                setMax = () => {
+                    const max = this.#resolveRuleWithReturnValue(f.max as RuleWithReturnValue);
+                    (input as HTMLInputElement).max = this.#isInteger(max) ? String(max) : '';
+                }
+            }
+            else {
+                (input as HTMLInputElement).max = this.#isInteger(f.max) ? String(f.max) : '';
+            }
+
+
+
+
             div.replaceChildren(label, input);
 
             // Browsers aren't great at making number inputs actually work so we will add some keydown help
@@ -237,6 +310,9 @@ class LogicForm extends HTMLElement {
                     return;
                 }
                 (input as HTMLInputElement).valueAsNumber = f.type === 'integer' ? Math.floor(val) : val;
+            };
+            setReadonly = (bool) => {
+                (input as HTMLInputElement).readOnly = !!bool;
             };
         }
         else if (f.type === 'select') {
@@ -284,50 +360,50 @@ class LogicForm extends HTMLElement {
             input.append(legend);
             div.replaceChildren(input);
 
-            if (this.#isInteger(f.min) && this.#isInteger(f.max) && f.min! > f.max!) {
-                f.max = f.min;
-            }
             const checkboxes = f.options.map(o => {
                 const checkbox = document.createElement('input');
                 const label = document.createElement('label');
+                const checkboxId = `_${crypto.randomUUID()}`;
+                checkbox.id = checkboxId;
+                label.htmlFor = checkboxId;
                 label.replaceChildren(checkbox, o.text);
                 checkbox.type = 'checkbox';
                 checkbox.name = f.name;
                 checkbox.value = o.value;
-                // checkbox.defaultChecked = defaultSelectedValues.has(o.value);
                 input.append(label);
                 return checkbox;
             });
-            if (typeof f.min === 'number' || typeof f.max === 'number') {
+            let min: number;
+            let max: number;
+            if (this.#isInteger(f.min)) min = f.min;
+            if (this.#isInteger(f.max)) max = f.max;
 
-            }
-
-            const minMax = () => {
+            const minMaxValidation = () => {
                 let validityMessage = '';
-                const hasMin = this.#isInteger(f.min) || f.required;
-                const hasMax = this.#isInteger(f.max);
+                const hasMin = this.#isInteger(min) || f.required;
+                const hasMax = this.#isInteger(max);
 
-                if (hasMin && f.min! > f.options.length) throw new Error(`${f.name} min is greater than total options`)
-                if (hasMin && hasMax && f.min! > f.options.length) f.min = f.options.length;
-                if (hasMin && hasMax && f.max! > f.options.length) f.max = f.options.length;
-                if (hasMin && f.required && (f.min! < 1 || typeof f.min === 'undefined')) f.min = 1;
-                if (hasMin && hasMax && f.min! > f.max!) f.max = f.min;
+                if (hasMin && min! > f.options.length) throw new Error(`${f.name} min is greater than total options`)
+                if (hasMin && hasMax && min! > f.options.length) min = f.options.length;
+                if (hasMin && hasMax && max! > f.options.length) max = f.options.length;
+                if (hasMin && f.required && (min! < 1 || typeof min === 'undefined')) min = 1;
+                if (hasMin && hasMax && min! > max!) f.max = min;
 
                 const selectionLength = checkboxes.filter(c => c.checked && validValues.has(c.value)).length;
-                const isTooFew = hasMin && selectionLength < Math.floor(f.min!);
-                const isTooMany = hasMax && selectionLength > Math.floor(f.max!);
+                const isTooFew = hasMin && selectionLength < Math.floor(min!);
+                const isTooMany = hasMax && selectionLength > Math.floor(max!);
 
-                if (hasMin && hasMax && (isTooFew || isTooMany) && f.min === f.max) {
-                    validityMessage = `Select exactly ${f.min} option(s).`
+                if (hasMin && hasMax && (isTooFew || isTooMany) && min === max) {
+                    validityMessage = `Select exactly ${min} option(s).`
                 }
                 else if (hasMin && hasMax && (isTooFew || isTooMany)) {
-                    validityMessage = `Select ${f.min}-${f.max} option(s).`
+                    validityMessage = `Select ${min}-${max} option(s).`
                 }
                 else if (hasMin && (isTooFew || isTooMany)) {
-                    validityMessage = `Select at least ${f.min} option(s).`
+                    validityMessage = `Select at least ${min} option(s).`
                 }
                 else if (hasMax && (isTooFew || isTooMany)) {
-                    validityMessage = `Select up to ${f.max} option(s).`
+                    validityMessage = `Select up to ${max} option(s).`
                 }
                 if (checkboxes.length) {
                     checkboxes[0].setCustomValidity(validityMessage);
@@ -336,7 +412,7 @@ class LogicForm extends HTMLElement {
                 // If it is not required and is empty, it is valid. This isnt working
                 if (!f.required && selectionLength === 0) checkboxes[0].setCustomValidity('');
             };
-            input.addEventListener('change', minMax);
+            input.addEventListener('change', minMaxValidation);
             setDefaultValue = () => {
                 for (const checkbox of checkboxes) {
                     checkbox.defaultChecked = defaultSelectedValues.has(checkbox.value);
@@ -349,10 +425,22 @@ class LogicForm extends HTMLElement {
                     checkbox.checked = set.has(checkbox.value);
                 }
             };
-
             setRequired = (bool: boolean) => {
-                minMax();
+                minMaxValidation();
                 requiredSpan.style.display = !!bool ? '' : 'none';
+            }
+            if (hasMinRule) {
+                setMin = () => {
+                    min = Number(this.#resolveRuleWithReturnValue(f.min as RuleWithReturnValue));
+                    // minMaxValidation();
+                }
+            }
+            if (hasMaxRule) {
+                setMax = () => {
+                    max = Number(this.#resolveRuleWithReturnValue(f.max as RuleWithReturnValue));
+                    // console.log({ max });
+                    // minMaxValidation();
+                }
             }
         }
         else if (f.type === 'radiogroup') {
@@ -374,7 +462,7 @@ class LogicForm extends HTMLElement {
             clearButton.style.right = '0';
             const updateClearButtonVisibility = () => clearButton.style.display = !!getValue() ? '' : 'none';
             input.addEventListener('change', () => updateClearButtonVisibility());
-            clearButton.addEventListener('click', () => setValue(''));
+            clearButton.addEventListener('click', () => internals.value = '');
 
             const radios = f.options.map(o => {
                 const radio = document.createElement('input');
@@ -401,6 +489,7 @@ class LogicForm extends HTMLElement {
                     radio.checked = val === radio.value && validValues.has(val);
                 }
                 updateClearButtonVisibility();
+                //this.#update();
             }
             setRequired = (bool) => {
                 for (const radio of radios) {
@@ -438,6 +527,7 @@ class LogicForm extends HTMLElement {
                 itemDiv.replaceChildren(itemInput, deleteButton);
                 const object = {
                     itemDiv,
+                    itemInput,
                     deleteButton,
                     get value() {
                         return itemInput.value.trim();
@@ -495,6 +585,11 @@ class LogicForm extends HTMLElement {
             setRequired = () => {
                 // Some custom validity telling you how many to fill in
             };
+            setReadonly = (bool) => {
+                for (const item of listItems) {
+                    item.itemInput.readOnly = !!bool;
+                }
+            };
 
             input.addEventListener('change', () => {
                 const isAtMin = listItems.size <= min;
@@ -538,6 +633,9 @@ class LogicForm extends HTMLElement {
                 (input as HTMLInputElement).required = !!bool;
                 requiredSpan.style.display = !!bool ? '' : 'none';
             };
+            setReadonly = (bool: boolean) => {
+                (input as HTMLInputElement).readOnly = !!bool;
+            };
         }
         else {
             throw new Error(`field "${(f as Field).name}" type invalid`);
@@ -560,6 +658,7 @@ class LogicForm extends HTMLElement {
         let _visible = true;
         let _disabled = false;
         let _required = false;
+        let _readonly = false;
         //let _type = f.type;
 
         const cl = this;
@@ -592,32 +691,45 @@ class LogicForm extends HTMLElement {
             get required() {
                 return _required;
             },
+            get readonly() {
+                return _readonly;
+            },
             get el() {
                 return div;
             },
             updateState() {
+                const previousRequired = _required;
+                const previousDisabled = _disabled;
 
-                _visible = cl.#evaluateBooleanProperty(f.visible, true);
-                _disabled = cl.#evaluateBooleanProperty(f.disabled, false);
-                _required = cl.#evaluateBooleanProperty(f.required, false);
-                setDefaultValue?.();
-                setPlaceholder?.();
-                if (isLabelRule) {
-                    labelSpan.textContent = String(cl.#resolveRuleWithReturnValue(f.label as RuleWithReturnValue)) ?? '';
+                if ('visible' in f) {
+                    _visible = cl.#evaluateBooleanProperty(f.visible, true);
+                }
+                if ('disabled' in f) {
+                    _disabled = cl.#evaluateBooleanProperty(f.disabled, false);
+                }
+                if ('required' in f) {
+                    _required = cl.#evaluateBooleanProperty(f.required, false);
+                }
+                if ('readonly' in f) {
+                    _readonly = cl.#evaluateBooleanProperty(f.readonly, false);
                 }
 
-                if (_visible) {
-                    //div.style.display = '';
-                    input.disabled = false || _disabled;
-                    //div.style.height = '';
-                }
-                else {
-                    //div.style.display = 'none';
-                    //div.style.height = '0px';
-                }
                 requiredSpan.style.display = _required ? '' : 'none';
                 setRequired(_required);
-                input.disabled = _disabled || !_visible;
+                input.disabled = _disabled;
+
+                setReadonly?.(_readonly);
+
+                // Fire updaters for rules with return values
+                // If the value is not set to a rule or the property doesn't exist, these are undefined, and this is skipped.
+                // Do not create these functions if the property is not a rule.
+                setLabel?.();
+                setDefaultValue?.();
+                setPlaceholder?.();
+                setMin?.();
+                setMax?.();
+                setMinLength?.();
+                setMaxLength?.();
             },
         }
 
@@ -1024,16 +1136,18 @@ type Textbox = FieldBase & {
     type: 'textbox';
     defaultValue?: string | RuleWithReturnValue;
     placeholder?: string | RuleWithReturnValue;
-    minLength?: number;
-    maxLength?: number;
+    minLength?: number | RuleWithReturnValue;
+    maxLength?: number | RuleWithReturnValue;
+    readonly?: BooleanExpression | AndRule | OrRule | NotRule | boolean;
 }
 
 type Textarea = FieldBase & {
     type: 'textarea';
     defaultValue?: string | RuleWithReturnValue;
-    placeholder?: string;
+    placeholder?: string | RuleWithReturnValue;
     minLength?: number;
     maxLength?: number;
+    readonly?: BooleanExpression | AndRule | OrRule | NotRule | boolean;
 }
 
 type Checkbox = FieldBase & {
@@ -1044,25 +1158,28 @@ type Checkbox = FieldBase & {
 type NumericTextbox = FieldBase & {
     type: 'numerictextbox';
     defaultValue?: string | RuleWithReturnValue;
-    placeholder?: string;
-    minLength?: number;
-    maxLength?: number;
+    placeholder?: string | RuleWithReturnValue;
+    minLength?: number | RuleWithReturnValue;
+    maxLength?: number | RuleWithReturnValue;
+    readonly?: BooleanExpression | AndRule | OrRule | NotRule | boolean;
 }
 
 type Integer = FieldBase & {
     type: 'integer';
-    defaultValue?: number;
-    placeholder?: string;
-    min?: number;
-    max?: number;
+    defaultValue?: number | RuleWithReturnValue;
+    placeholder?: string | RuleWithReturnValue;
+    min?: number | RuleWithReturnValue;
+    max?: number | RuleWithReturnValue;
+    readonly?: BooleanExpression | AndRule | OrRule | NotRule | boolean;
 }
 
 type Decimal = FieldBase & {
     type: 'decimal';
-    defaultValue?: number;
-    placeholder?: string;
-    min?: number;
-    max?: number;
+    defaultValue?: number | RuleWithReturnValue;
+    placeholder?: string | RuleWithReturnValue;
+    min?: number | RuleWithReturnValue;
+    max?: number | RuleWithReturnValue;
+    readonly?: BooleanExpression | AndRule | OrRule | NotRule | boolean;
 }
 
 type Select = FieldBase & {
@@ -1082,8 +1199,8 @@ type CheckboxGroup = FieldBase & {
         value: string;
         //disabled?: Rule[] | boolean;
     }[];
-    min?: number;
-    max?: number
+    min?: number | RuleWithReturnValue;
+    max?: number | RuleWithReturnValue;
     defaultValue?: string[];
 }
 
@@ -1102,6 +1219,7 @@ type List = FieldBase & {
     defaultValue?: string[];
     min?: number;
     max?: number;
+    readonly?: BooleanExpression | AndRule | OrRule | NotRule | boolean;
 }
 
 type DateInput = FieldBase & {
@@ -1109,6 +1227,7 @@ type DateInput = FieldBase & {
     defaultValue?: string;
     min?: string;
     max?: string;
+    readonly?: BooleanExpression | AndRule | OrRule | NotRule | boolean;
 }
 
 type Operator = '==' | '!=' | '>' | '<' | '>=' | '<=' | 'in' | '!in';
@@ -1118,6 +1237,9 @@ type FieldReference = { field: string };
 type AndRule = { and: BooleanExpression[] };
 type OrRule = { or: BooleanExpression[] };
 type NotRule = { not: BooleanExpression | AndRule | OrRule };
+
+// Could easily change if conditions to be an array of {"field": "fieldA"}, "==", "something", return value,
+// with an else at the end
 
 type RuleWithReturnValue = {
     if: BooleanExpression | AndRule | OrRule | NotRule,
@@ -1141,10 +1263,9 @@ type FieldInternal = {
     readonly visible: boolean;
     readonly required: boolean;
     readonly disabled: boolean;
+    readonly readonly: boolean;
     readonly isTouched: boolean;
-    //readonly readonly: boolean;
     value: Value;
-
     updateState(): void;
 };
 

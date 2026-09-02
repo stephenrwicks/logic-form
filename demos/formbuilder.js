@@ -85,6 +85,12 @@ const formBuilder = new LogicForm({
             defaultValue: false
         },
         {
+            type: 'checkbox',
+            name: 'readonly',
+            label: 'Readonly',
+            defaultValue: false
+        },
+        {
             type: 'textbox',
             name: 'defaultValue',
             label: 'Default Value',
@@ -210,7 +216,7 @@ document.body.replaceChildren(grid);
 update();
 const getterButton = document.createElement('button');
 getterButton.addEventListener('click', () => {
-    console.log(document.querySelector('#sample-form').$[formBuilder.$.name]);
+    console.log((document.querySelector('#sample-form')).$[formBuilder.$.name]);
 });
 getterButton.textContent = `Fire a getter to show the value of the sample field: console.log(document.querySelector('#sample-form').$.${formBuilder.$.name});`;
 sampleForm.addEventListener('logic-form-update', () => {

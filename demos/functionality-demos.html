@@ -178,7 +178,7 @@
   </logic-form>
 
   <logic-form id="demo5" data-theme="slate" data-config='{
-    "title": "Change a field label based on a radio selection (Clear is bugged right now)",
+    "title": "Change a field label based on a radio selection",
     "fields": [
       {
         "type": "radiogroup",
@@ -213,7 +213,133 @@
   }'>
   </logic-form>
 
-
+  <logic-form id="demo11" data-config='{
+  "title": "Set the min, max, and placeholder of an integer field based on select value",
+  "fields": [
+    {
+      "type": "select",
+      "name": "room",
+      "label": "Room",
+      "options": [
+        { "text": "Small Room", "value": "small" },
+        { "text": "Medium Room", "value": "medium" },
+        { "text": "Large Room", "value": "large" }
+      ]
+    },
+    {
+      "type": "integer",
+      "name": "guests",
+      "label": "Number of Guests",
+      "required": true,
+      "min": {
+        "if": [{"field": "room"}, "==", "small"],
+        "then": 1,
+        "elseif": [
+          {
+            "if": [{"field": "room"}, "==", "medium"],
+            "then": 5
+          },
+          {
+            "if": [{"field": "room"}, "==", "large"],
+            "then": 10
+          }
+        ],
+        "else": 1
+      },
+      "max": {
+        "if": [{"field": "room"}, "==", "small"],
+        "then": 5,
+        "elseif": [
+          {
+            "if": [{"field": "room"}, "==", "medium"],
+            "then": 15
+          },
+          {
+            "if": [{"field": "room"}, "==", "large"],
+            "then": 30
+          }
+        ],
+        "else": 5
+      },
+      "placeholder": {
+        "if": [{"field": "room"}, "==", "small"],
+        "then": "Select 1-5",
+        "elseif": [
+          {
+            "if": [{"field": "room"}, "==", "medium"],
+            "then": "Select 5-15"
+          },
+          {
+            "if": [{"field": "room"}, "==", "large"],
+            "then": "Select 10-30"
+          }
+        ],
+        "else": "Select a room"
+      }
+    }
+  ]
+}'>
+  </logic-form>
+  <logic-form id="demo12" data-config='{
+  "title": "Set the number of activities that can be selected based on the group size",
+  "fields": [
+    {
+      "type": "select",
+      "name": "groupSize",
+      "label": "Group Size",
+      "options": [
+        { "text": "Small Group", "value": "small" },
+        { "text": "Medium Group", "value": "medium" },
+        { "text": "Large Group", "value": "large" }
+      ]
+    },
+    {
+      "type": "checkboxgroup",
+      "name": "activities",
+      "label": "Activities",
+      "required": true,
+      "options": [
+        { "text": "Hiking", "value": "hiking" },
+        { "text": "Swimming", "value": "swimming" },
+        { "text": "Kayaking", "value": "kayaking" },
+        { "text": "Cycling", "value": "cycling" },
+        { "text": "Climbing", "value": "climbing" },
+        { "text": "Camping", "value": "camping" }
+      ],
+      "min": {
+        "if": [{"field": "groupSize"}, "==", "small"],
+        "then": 1,
+        "elseif": [
+          {
+            "if": [{"field": "groupSize"}, "==", "medium"],
+            "then": 2
+          },
+          {
+            "if": [{"field": "groupSize"}, "==", "large"],
+            "then": 3
+          }
+        ],
+        "else": 1
+      },
+      "max": {
+        "if": [{"field": "groupSize"}, "==", "small"],
+        "then": 2,
+        "elseif": [
+          {
+            "if": [{"field": "groupSize"}, "==", "medium"],
+            "then": 4
+          },
+          {
+            "if": [{"field": "groupSize"}, "==", "large"],
+            "then": 6
+          }
+        ],
+        "else": 2
+      }
+    }
+  ]
+}'>
+  </logic-form>
 
   <logic-form id="demo8" data-theme="pink" data-config='{
   "title": "Show different fields based on the number of items entered",
@@ -440,6 +566,182 @@
           ["digital", "!in", {"field": "fieldB"}],
           [{"field": "fieldC"}, "==", "public"]
         ]
+      }
+    }
+  ]
+}'>
+  </logic-form>
+
+  <logic-form id="food-order" data-theme="red" data-config='{
+  "title": "Food Order",
+  "fields": [
+    {
+      "type": "select",
+      "name": "item",
+      "label": "What would you like?",
+      "options": [
+        { "text": "-", "value": "" },
+        { "text": "Hot Dog", "value": "hotdog" },
+        { "text": "Hamburger", "value": "hamburger" },
+        { "text": "Pizza", "value": "pizza" },
+        { "text": "Salad", "value": "salad" }
+      ],
+      "required": true
+    },
+
+    {
+      "type": "checkboxgroup",
+      "name": "hotdogToppings",
+      "label": "Hot Dog Toppings",
+      "options": [
+        { "text": "Ketchup", "value": "ketchup" },
+        { "text": "Mustard", "value": "mustard" },
+        { "text": "Relish", "value": "relish" },
+        { "text": "Onions", "value": "onions" },
+        { "text": "Sauerkraut", "value": "sauerkraut" }
+      ],
+      "visible": [{"field": "item"}, "==", "hotdog"]
+    },
+
+    {
+      "type": "checkboxgroup",
+      "name": "burgerToppings",
+      "label": "Hamburger Toppings",
+      "options": [
+        { "text": "Lettuce", "value": "lettuce" },
+        { "text": "Tomato", "value": "tomato" },
+        { "text": "Onion", "value": "onion" },
+        { "text": "Pickles", "value": "pickles" },
+        { "text": "Bacon", "value": "bacon" },
+        { "text": "Cheese", "value": "cheese" }
+      ],
+      "visible": [{"field": "item"}, "==", "hamburger"]
+    },
+
+    {
+      "type": "select",
+      "name": "burgerDoneness",
+      "label": "How would you like your burger cooked?",
+      "options": [
+        { "text": "Rare", "value": "rare" },
+        { "text": "Medium Rare", "value": "medium-rare" },
+        { "text": "Medium", "value": "medium" },
+        { "text": "Well Done", "value": "well-done" }
+      ],
+      "visible": [{"field": "item"}, "==", "hamburger"]
+    },
+
+    {
+      "type": "select",
+      "name": "pizzaSize",
+      "label": "Pizza Size",
+      "options": [
+        { "text": "Small", "value": "small" },
+        { "text": "Medium", "value": "medium" },
+        { "text": "Large", "value": "large" }
+      ],
+      "visible": [{"field": "item"}, "==", "pizza"]
+    },
+
+    {
+      "type": "checkboxgroup",
+      "name": "pizzaToppings",
+      "label": "Pizza Toppings",
+      "options": [
+        { "text": "Pepperoni", "value": "pepperoni" },
+        { "text": "Mushrooms", "value": "mushrooms" },
+        { "text": "Peppers", "value": "peppers" },
+        { "text": "Onions", "value": "onions" },
+        { "text": "Olives", "value": "olives" },
+        { "text": "Extra Cheese", "value": "cheese" }
+      ],
+      "visible": [{"field": "item"}, "==", "pizza"]
+    },
+
+    {
+      "type": "checkbox",
+      "name": "glutenFree",
+      "label": "Gluten-free",
+      "visible": {
+        "or": [
+          [{"field": "item"}, "==", "pizza"],
+          [{"field": "item"}, "==", "hotdog"],
+          [{"field": "item"}, "==", "hamburger"]
+        ]
+      }
+    },
+
+    {
+      "type": "checkboxgroup",
+      "name": "saladIngredients",
+      "label": "Salad Ingredients",
+      "options": [
+        { "text": "Lettuce", "value": "lettuce" },
+        { "text": "Tomato", "value": "tomato" },
+        { "text": "Cucumber", "value": "cucumber" },
+        { "text": "Carrots", "value": "carrots" },
+        { "text": "Onions", "value": "onions" }
+      ],
+      "visible": [{"field": "item"}, "==", "salad"]
+    },
+
+    {
+      "type": "select",
+      "name": "dressing",
+      "label": "Salad Dressing",
+      "options": [
+        { "text": "Ranch", "value": "ranch" },
+        { "text": "Italian", "value": "italian" },
+        { "text": "Balsamic", "value": "balsamic" },
+        { "text": "Caesar", "value": "caesar" }
+      ],
+      "visible": [{"field": "item"}, "==", "salad"]
+    },
+
+    {
+      "type": "checkboxgroup",
+      "name": "extras",
+      "label": "Extras",
+      "options": [
+        { "text": "Fries", "value": "fries" },
+        { "text": "Chips", "value": "chips" },
+        { "text": "Side Salad", "value": "salad" },
+        { "text": "Cookie", "value": "cookie" }
+      ]
+    },
+
+    {
+      "type": "textarea",
+      "name": "specialInstructions",
+      "label": {
+        "if": [{"field": "item"}, "==", "pizza"],
+        "then": "Pizza Instructions",
+        "elseif": [
+          {
+            "if": [{"field": "item"}, "==", "hamburger"],
+            "then": "Burger Instructions"
+          },
+          {
+            "if": [{"field": "item"}, "==", "hotdog"],
+            "then": "Hot Dog Instructions"
+          }
+        ],
+        "else": "Special Instructions"
+      },
+      "placeholder": {
+        "if": [{"field": "item"}, "==", "pizza"],
+        "then": "Tell us about any special requests for your pizza...",
+        "elseif": [
+          {
+            "if": [{"field": "item"}, "==", "hamburger"],
+            "then": "Tell us about any special requests for your burger..."
+          },
+          {
+            "if": [{"field": "item"}, "==", "hotdog"],
+            "then": "Tell us about any special requests for your hot dog..."
+          }
+        ],
+        "else": "Tell us about any special requests..."
       }
     }
   ]
