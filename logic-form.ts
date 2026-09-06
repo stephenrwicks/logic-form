@@ -63,9 +63,77 @@ class LogicForm extends HTMLElement {
         if (this.#isNumeric(f.max) && f.max < 1) f.max = 1;
     };
 
+    #buildSection() {
+
+    }
+
     #buildField(f: Field) {
 
         if (f.name in this.#fields) throw new Error(`"${f.name}" exists in the config twice. Can't have two fields named the same.`);
+        const cl = this;
+
+        // Hidden input returns early because it doesn't need most of the same features
+        if (f.type === 'hidden') {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = f.name;
+            const hasDefaultValueRule = 'defaultValue' in f && this.#isRuleWithReturnValue(f.defaultValue);
+            let setDefaultValue: () => void;
+            if (hasDefaultValueRule) {
+                setDefaultValue = () => {
+                    input.defaultValue = String(this.#resolveRuleWithReturnValue(f.defaultValue as RuleWithReturnValue));
+                };
+            }
+            else if (typeof f.defaultValue === 'string' || typeof f.defaultValue === 'number') {
+                input.defaultValue = String(f.defaultValue);
+            }
+            let _disabled = false;
+            const internals: FieldInternal = {
+                get isTouched() {
+                    return false;
+                },
+                get type() {
+                    return 'hidden' as const;
+                },
+                get name() {
+                    return f.name;
+                },
+                get value() {
+                    if (_disabled) return '';
+                    return input.value;
+                },
+                set value(val: Value) {
+                    input.value = String(val || '');
+                    cl.#update();
+                },
+                get visible() {
+                    return !_disabled;
+                },
+                get disabled() {
+                    return _disabled;
+                },
+                get required() {
+                    return false;
+                },
+                get readonly() {
+                    return _disabled;
+                },
+                get el() {
+                    return input;
+                },
+                updateState() {
+                    if ('disabled' in f) {
+                        _disabled = cl.#evaluateBooleanProperty(f.disabled, false);
+                    }
+                    input.disabled = _disabled;
+                    setDefaultValue?.();
+                },
+            }
+
+            this.#fields[f.name] = internals;
+            return internals;
+        }
+
         const whiteSpaceBlocker = () => input.setCustomValidity(!!getValue() ? '' : 'This field is required.');
         this.#fixMinMax(f);
         //this.#fixMinlengthMaxlength(f);
@@ -600,6 +668,22 @@ class LogicForm extends HTMLElement {
                 }
                 addItemButton.disabled = isAtMax;
             });
+
+
+            if (hasMinRule) {
+                setMin = () => {
+                    //min = Number(this.#resolveRuleWithReturnValue(f.min as RuleWithReturnValue));
+                    // minMaxValidation();
+                }
+            }
+            if (hasMaxRule) {
+                setMax = () => {
+                    //max = Number(this.#resolveRuleWithReturnValue(f.max as RuleWithReturnValue));
+                    // console.log({ max });
+                    // minMaxValidation();
+                }
+            }
+
             // Can be removed once setDefaultValue is added
             setValue(Array.isArray(f.defaultValue) ? f.defaultValue : []);
         }
@@ -636,7 +720,18 @@ class LogicForm extends HTMLElement {
             setReadonly = (bool: boolean) => {
                 (input as HTMLInputElement).readOnly = !!bool;
             };
+            if (hasMinRule) {
+                setMin = () => {
+                }
+            }
+            if (hasMaxRule) {
+                setMax = () => {
+                }
+            }
+
+
         }
+
         else {
             throw new Error(`field "${(f as Field).name}" type invalid`);
         }
@@ -659,9 +754,7 @@ class LogicForm extends HTMLElement {
         let _disabled = false;
         let _required = false;
         let _readonly = false;
-        //let _type = f.type;
 
-        const cl = this;
         const internals: FieldInternal = {
             get isTouched() {
                 return _isTouched;
@@ -698,9 +791,6 @@ class LogicForm extends HTMLElement {
                 return div;
             },
             updateState() {
-                const previousRequired = _required;
-                const previousDisabled = _disabled;
-
                 if ('visible' in f) {
                     _visible = cl.#evaluateBooleanProperty(f.visible, true);
                 }
@@ -969,7 +1059,9 @@ class LogicForm extends HTMLElement {
         }
         input.dispatchEvent(new CustomEvent('logic-form-update', { bubbles: true, detail: { input } }));
     }
-
+    #dispatchSubmitEvent() {
+        this.form.dispatchEvent(new CustomEvent('logic-form-submit', { bubbles: true, detail: { value: this.getValue() } }));
+    }
 
     connectedCallback() {
         if (this.#isInit) return;
@@ -985,7 +1077,7 @@ class LogicForm extends HTMLElement {
             throw new Error('No config');
         }
 
-        for (const attr of ['action', 'enctype', 'method', 'novalidate', 'target', 'autocomplete']) {
+        for (const attr of ['onsubmit', 'action', 'enctype', 'method', 'novalidate', 'target', 'autocomplete']) {
             if (this.hasAttribute(attr)) {
                 const val = this.getAttribute(attr) ?? '';
                 this.removeAttribute(attr);
@@ -1021,6 +1113,34 @@ class LogicForm extends HTMLElement {
     }
     getConfig() {
         return this.#config;
+    }
+    /** Change the entire config and rebuild the form */
+    setConfig(config: Config) {
+        this.#config = config;
+        this.#titleEl.textContent = config.title?.trim() ?? '';
+        this.#fields = {};
+        this.#valueGetterObject = Object.create(null);
+        this.form.replaceChildren();
+        this.form.append(this.#titleEl);
+        for (const f of config.fields ?? []) {
+            const fieldInternal = this.#buildField(f);
+            // Several layers of getter/setters here
+            // This is sort of a proxy. It's exposed to the consumer as a layer to access the internal value get/set,
+            // but the rest of the internal object is never exposed
+            Object.defineProperty(this.#valueGetterObject, f.name, {
+                get() {
+                    return fieldInternal.value;
+                },
+                set(value: Value) {
+                    fieldInternal.value = value;
+                },
+                enumerable: true,
+            });
+            this.form.append(fieldInternal.el);
+        }
+        this.form.append(this.#buttonRow);
+        this.#update();
+        this.#dispatchUpdateEvent('setConfig');
     }
     /** Get object of active and relevant form field values */
     getValue() {
@@ -1087,44 +1207,17 @@ class LogicForm extends HTMLElement {
         this.setValue(value);
         return structuredClone(value);
     }
-    /** Change the entire config and rebuild the form */
-    setConfig(config: Config) {
-        this.#config = config;
-        this.#titleEl.textContent = config.title?.trim() ?? '';
-        this.#fields = {};
-        this.#valueGetterObject = Object.create(null);
-        this.form.replaceChildren();
-        this.form.append(this.#titleEl);
-        for (const f of config.fields ?? []) {
-            const fieldInternal = this.#buildField(f);
-            // Several layers of getter/setters here
-            // This is sort of a proxy. It's exposed to the consumer as a layer to access the internal value get/set,
-            // but the rest of the internal object is never exposed
-            Object.defineProperty(this.#valueGetterObject, f.name, {
-                get() {
-                    return fieldInternal.value;
-                },
-                set(value: Value) {
-                    fieldInternal.value = value;
-                },
-                enumerable: true,
-            });
-            this.form.append(fieldInternal.el);
-        }
-        this.form.append(this.#buttonRow);
-        this.#update();
-        this.#dispatchUpdateEvent('setConfig');
-    }
+
 
 }
 
 customElements.define('logic-form', LogicForm);
 
 
-type Field = Textbox | Textarea | Checkbox | Select | NumericTextbox | Integer | Decimal | CheckboxGroup | RadioGroup | List | DateInput;
+type Field = Textbox | Textarea | Checkbox | Select | NumericTextbox | Integer | Decimal | CheckboxGroup | RadioGroup | List | DateInput | HiddenInput;
 
 type FieldBase = {
-    type: 'textbox' | 'textarea' | 'checkbox' | 'select' | 'numerictextbox' | 'integer' | 'decimal' | 'checkboxgroup' | 'radiogroup' | 'list' | 'date';
+    type: 'textbox' | 'textarea' | 'checkbox' | 'select' | 'numerictextbox' | 'integer' | 'decimal' | 'checkboxgroup' | 'radiogroup' | 'list' | 'date' | 'hidden';
     name: string;
     label: string | RuleWithReturnValue;
     visible?: BooleanExpression | AndRule | OrRule | NotRule | boolean;
@@ -1230,6 +1323,13 @@ type DateInput = FieldBase & {
     readonly?: BooleanExpression | AndRule | OrRule | NotRule | boolean;
 }
 
+type HiddenInput = {
+    type: 'hidden';
+    name: string;
+    defaultValue?: string | RuleWithReturnValue;
+    disabled?: BooleanExpression | AndRule | OrRule | NotRule | boolean;
+}
+
 type Operator = '==' | '!=' | '>' | '<' | '>=' | '<=' | 'in' | '!in';
 type Value = boolean | string | number | string[];
 type BooleanExpression = [FieldReference | Value, Operator, FieldReference | Value];
@@ -1274,9 +1374,11 @@ type FieldInternal = {
 
 // Stuff to work on:
 // Date input min/max
+// Checkbox group min/max is weird with a rule?
 // Fix int, decimal, numeric inputs
 // Hidden input
-// Readonly state
+// Errors
+// Readonly state (mostly done?)
 // Live form builder
 // Disabled options
 // Rule-able min and max
@@ -1284,7 +1386,7 @@ type FieldInternal = {
 // in and !in rules don't make sense for determining equal length?
 // Select optgroups
 // Custom errors
-// Combobox input - Can reuse most of my custom one.
+// CSS, transitions, etc.
 // Sections
 // Conditional sections
 // Repeatable sections

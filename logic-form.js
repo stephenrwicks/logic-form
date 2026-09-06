@@ -55,9 +55,72 @@ class LogicForm extends HTMLElement {
             f.max = 1;
     }
     ;
+    #buildSection() {
+    }
     #buildField(f) {
         if (f.name in this.#fields)
             throw new Error(`"${f.name}" exists in the config twice. Can't have two fields named the same.`);
+        const cl = this;
+        if (f.type === 'hidden') {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = f.name;
+            const hasDefaultValueRule = 'defaultValue' in f && this.#isRuleWithReturnValue(f.defaultValue);
+            let setDefaultValue;
+            if (hasDefaultValueRule) {
+                setDefaultValue = () => {
+                    input.defaultValue = String(this.#resolveRuleWithReturnValue(f.defaultValue));
+                };
+            }
+            else if (typeof f.defaultValue === 'string' || typeof f.defaultValue === 'number') {
+                input.defaultValue = String(f.defaultValue);
+            }
+            let _disabled = false;
+            const internals = {
+                get isTouched() {
+                    return false;
+                },
+                get type() {
+                    return 'hidden';
+                },
+                get name() {
+                    return f.name;
+                },
+                get value() {
+                    if (_disabled)
+                        return '';
+                    return input.value;
+                },
+                set value(val) {
+                    input.value = String(val || '');
+                    cl.#update();
+                },
+                get visible() {
+                    return !_disabled;
+                },
+                get disabled() {
+                    return _disabled;
+                },
+                get required() {
+                    return false;
+                },
+                get readonly() {
+                    return _disabled;
+                },
+                get el() {
+                    return input;
+                },
+                updateState() {
+                    if ('disabled' in f) {
+                        _disabled = cl.#evaluateBooleanProperty(f.disabled, false);
+                    }
+                    input.disabled = _disabled;
+                    setDefaultValue?.();
+                },
+            };
+            this.#fields[f.name] = internals;
+            return internals;
+        }
         const whiteSpaceBlocker = () => input.setCustomValidity(!!getValue() ? '' : 'This field is required.');
         this.#fixMinMax(f);
         let eventToListenFor = 'change';
@@ -531,6 +594,14 @@ class LogicForm extends HTMLElement {
                 }
                 addItemButton.disabled = isAtMax;
             });
+            if (hasMinRule) {
+                setMin = () => {
+                };
+            }
+            if (hasMaxRule) {
+                setMax = () => {
+                };
+            }
             setValue(Array.isArray(f.defaultValue) ? f.defaultValue : []);
         }
         else if (f.type === 'date') {
@@ -567,6 +638,14 @@ class LogicForm extends HTMLElement {
             setReadonly = (bool) => {
                 input.readOnly = !!bool;
             };
+            if (hasMinRule) {
+                setMin = () => {
+                };
+            }
+            if (hasMaxRule) {
+                setMax = () => {
+                };
+            }
         }
         else {
             throw new Error(`field "${f.name}" type invalid`);
@@ -581,7 +660,6 @@ class LogicForm extends HTMLElement {
         let _disabled = false;
         let _required = false;
         let _readonly = false;
-        const cl = this;
         const internals = {
             get isTouched() {
                 return _isTouched;
@@ -617,8 +695,6 @@ class LogicForm extends HTMLElement {
                 return div;
             },
             updateState() {
-                const previousRequired = _required;
-                const previousDisabled = _disabled;
                 if ('visible' in f) {
                     _visible = cl.#evaluateBooleanProperty(f.visible, true);
                 }
@@ -834,6 +910,9 @@ class LogicForm extends HTMLElement {
         }
         input.dispatchEvent(new CustomEvent('logic-form-update', { bubbles: true, detail: { input } }));
     }
+    #dispatchSubmitEvent() {
+        this.form.dispatchEvent(new CustomEvent('logic-form-submit', { bubbles: true, detail: { value: this.getValue() } }));
+    }
     connectedCallback() {
         if (this.#isInit)
             return;
@@ -847,7 +926,7 @@ class LogicForm extends HTMLElement {
         else {
             throw new Error('No config');
         }
-        for (const attr of ['action', 'enctype', 'method', 'novalidate', 'target', 'autocomplete']) {
+        for (const attr of ['onsubmit', 'action', 'enctype', 'method', 'novalidate', 'target', 'autocomplete']) {
             if (this.hasAttribute(attr)) {
                 const val = this.getAttribute(attr) ?? '';
                 this.removeAttribute(attr);
@@ -872,6 +951,30 @@ class LogicForm extends HTMLElement {
     }
     getConfig() {
         return this.#config;
+    }
+    setConfig(config) {
+        this.#config = config;
+        this.#titleEl.textContent = config.title?.trim() ?? '';
+        this.#fields = {};
+        this.#valueGetterObject = Object.create(null);
+        this.form.replaceChildren();
+        this.form.append(this.#titleEl);
+        for (const f of config.fields ?? []) {
+            const fieldInternal = this.#buildField(f);
+            Object.defineProperty(this.#valueGetterObject, f.name, {
+                get() {
+                    return fieldInternal.value;
+                },
+                set(value) {
+                    fieldInternal.value = value;
+                },
+                enumerable: true,
+            });
+            this.form.append(fieldInternal.el);
+        }
+        this.form.append(this.#buttonRow);
+        this.#update();
+        this.#dispatchUpdateEvent('setConfig');
     }
     getValue() {
         const result = {};
@@ -929,30 +1032,6 @@ class LogicForm extends HTMLElement {
             return;
         this.setValue(value);
         return structuredClone(value);
-    }
-    setConfig(config) {
-        this.#config = config;
-        this.#titleEl.textContent = config.title?.trim() ?? '';
-        this.#fields = {};
-        this.#valueGetterObject = Object.create(null);
-        this.form.replaceChildren();
-        this.form.append(this.#titleEl);
-        for (const f of config.fields ?? []) {
-            const fieldInternal = this.#buildField(f);
-            Object.defineProperty(this.#valueGetterObject, f.name, {
-                get() {
-                    return fieldInternal.value;
-                },
-                set(value) {
-                    fieldInternal.value = value;
-                },
-                enumerable: true,
-            });
-            this.form.append(fieldInternal.el);
-        }
-        this.form.append(this.#buttonRow);
-        this.#update();
-        this.#dispatchUpdateEvent('setConfig');
     }
 }
 customElements.define('logic-form', LogicForm);

@@ -1,9 +1,6 @@
 logic-form {
 
-
-
     --column-width: 20rem;
-
     --primary: rgb(10, 0, 102);
     --secondary: rgb(26, 26, 82);
     --danger: red;
@@ -79,9 +76,6 @@ logic-form {
     --secondaryDarker: color-mix(in oklch, black 50%, var(--secondary) 50%);
 
     --border: 1px solid var(--primary);
-    /* --borderDanger: 1px solid var(--danger);
-    --boxShadow: 0px 0px .5em var(--primaryLight);
-    --boxShadow: 0px 0px 1rem color-mix(in oklch, gray 35%, var(--primaryLight) 65%); */
     --borderRadius: 0;
 
     font: normal .875rem Segoe UI,
@@ -136,10 +130,10 @@ logic-form {
             gap: .6rem;
         }
 
-        /* >div[data-field-type="checkbox"]{
+        >div[data-field-type="checkbox"] {
             min-height: 3.59rem;
             align-content: end;
-        } */
+        }
     }
 
     form>p {
@@ -234,7 +228,8 @@ logic-form {
         &:disabled {
             cursor: default;
             opacity: .7;
-            filter: grayscale(.8)
+            filter: grayscale(.8);
+            /* background-color: var(--secondaryLightest); */
         }
 
         &:hover:not(:disabled, :focus, :focus-visible, :focus-within) {
@@ -278,10 +273,6 @@ logic-form {
             min-height: 6rem;
             max-height: 14rem;
             resize: vertical;
-
-            &:focus-visible {
-                background-color: var(--white);
-            }
         }
     }
 

@@ -9,33 +9,92 @@
     form {
       margin-bottom: 1rem;
     }
+
+    .demo-header {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .demo-code {
+      display: none;
+    }
+
+    .demo.show-code .demo-form {
+      display: none;
+    }
+
+    .demo.show-code .demo-code {
+      display: block;
+      border: 1px solid gray;
+      width: fit-content;
+      padding: 2rem;
+    }
+
+    .demos .demo {
+      display: none;
+    }
+
+    .demo-nav {
+      display: grid;
+      gap: .4em;
+
+      button.active {
+        background: #333;
+        color: white;
+        font-weight: bold;
+      }
+      margin-bottom: 3rem;
+    }
+
+    body {
+      display: grid;
+      grid-template-columns: 1fr 5fr;
+      gap: 2rem;
+    }
   </style>
 
 </head>
 
 <body>
+  <main>
+    <logic-form id="demo1" data-config='{
+      "title": "Show a field (add to DOM) when checkbox is checked",
+      "fields": [
+        {
+          "type": "checkbox",
+          "name": "fieldA",
+          "label": "Show Field B"
+        },
+        {
+          "type": "textbox",
+          "name": "fieldB",
+          "label": "Field B",
+          "visible": [{"field": "fieldA"}, "==", true]
+        }
+      ]
+    }'></logic-form>
+    </div>
 
-  <p>logic-form tech demos. View page source to see how this works declaratively.</p>
-
-  <logic-form id="demo1" data-config='{
-    "title": "Show a field (add to DOM) when checkbox is checked",
+    <logic-form id="demo13" data-config='{
+    "title": "Add hidden inputs when the user does something",
     "fields": [
       {
         "type": "checkbox",
         "name": "fieldA",
-        "label": "Show Field B"
+        "label": "Add hidden input (check DOM)"
       },
-      {
-        "type": "textbox",
-        "name": "fieldB",
-        "label": "Field B",
-        "visible": [{"field": "fieldA"}, "==", true]
+      {        
+        "type": "hidden",
+        "name": "fieldC",
+        "defaultValue": "RandomArbitraryData",
+        "disabled": [{"field": "fieldA"}, "==", false]
       }
     ]
   }'>
-  </logic-form>
+    </logic-form>
 
-  <logic-form id="demo7" data-theme="indigo" data-config='{
+    <logic-form id="demo7" data-theme="indigo" data-config='{
   "title": "Do different things by comparing Field A and B",
   "fields": [
     {
@@ -83,9 +142,9 @@
     }
   ]
 }'>
-  </logic-form>
+    </logic-form>
 
-  <logic-form id="demo2" data-theme="green" data-config='{
+    <logic-form id="demo2" data-theme="green" data-config='{
     "title": "Field is disabled when select is set to option C and checkbox is checked",
     "fields": [
       {
@@ -116,9 +175,9 @@
       }
     ]
   }'>
-  </logic-form>
+    </logic-form>
 
-  <logic-form id="demo3" data-theme="purple" data-config='{
+    <logic-form id="demo3" data-theme="purple" data-config='{
     "title": "Make a field required when an integer is greater than 10 and less than 20",
     "fields": [
       {
@@ -139,9 +198,9 @@
       }
     ]
   }'>
-  </logic-form>
+    </logic-form>
 
-  <logic-form id="demo4" data-theme="teal" data-config='{
+    <logic-form id="demo4" data-theme="teal" data-config='{
     "title": "Disable a field unless checkboxgroup includes A and B, then field is required",
     "fields": [
       {
@@ -175,9 +234,9 @@
       }
     ]
   }'>
-  </logic-form>
+    </logic-form>
 
-  <logic-form id="demo5" data-theme="slate" data-config='{
+    <logic-form id="demo5" data-theme="slate" data-config='{
     "title": "Change a field label based on a radio selection",
     "fields": [
       {
@@ -211,9 +270,9 @@
       }
     ]
   }'>
-  </logic-form>
+    </logic-form>
 
-  <logic-form id="demo11" data-config='{
+    <logic-form onsubmit="return false" id="demo11" data-config='{
   "title": "Set the min, max, and placeholder of an integer field based on select value",
   "fields": [
     {
@@ -279,8 +338,8 @@
     }
   ]
 }'>
-  </logic-form>
-  <logic-form id="demo12" data-config='{
+    </logic-form>
+    <logic-form onsubmit="console.log(event); return false" id="demo12" data-config='{
   "title": "Set the number of activities that can be selected based on the group size",
   "fields": [
     {
@@ -339,9 +398,9 @@
     }
   ]
 }'>
-  </logic-form>
+    </logic-form>
 
-  <logic-form id="demo8" data-theme="pink" data-config='{
+    <logic-form id="demo8" data-theme="pink" data-config='{
   "title": "Show different fields based on the number of items entered",
   "fields": [
     {
@@ -386,9 +445,9 @@
     }
   ]
 }'>
-  </logic-form>
+    </logic-form>
 
-  <logic-form id="demo6" data-theme="gold" data-config='{
+    <logic-form id="demo6" data-theme="gold" data-config='{
   "title": "Update labels and placeholders by comparing a string value to an array value",
   "fields": [
     {
@@ -429,9 +488,9 @@
     }
   ]
 }'>
-  </logic-form>
+    </logic-form>
 
-  <logic-form id="demo" data-theme="purple" data-config='{
+    <logic-form id="demo" data-theme="purple" data-config='{
   "title": "Show a field when the checkbox selections exactly match the list",
   "fields": [
     {
@@ -464,9 +523,9 @@
     }
   ]
 }'>
-  </logic-form>
+    </logic-form>
 
-  <logic-form id="demo9" data-theme="orange" data-config='{
+    <logic-form id="demo9" data-theme="orange" data-config='{
   "title": "Do something when a string is in another string",
   "fields": [
     {
@@ -521,9 +580,9 @@
     }
   ]
 }'>
-  </logic-form>
+    </logic-form>
 
-  <logic-form id="demo10" data-theme="purple" data-config='{
+    <logic-form id="demo10" data-theme="purple" data-config='{
   "title": "Show the approval field when the code contains LIB, both Print and Reference are selected, Digital is not selected, and Public is selected",
   "fields": [
     {
@@ -570,9 +629,9 @@
     }
   ]
 }'>
-  </logic-form>
+    </logic-form>
 
-  <logic-form id="food-order" data-theme="red" data-config='{
+    <logic-form id="food-order" data-theme="red" data-config='{
   "title": "Food Order",
   "fields": [
     {
@@ -746,6 +805,118 @@
     }
   ]
 }'>
-  </logic-form>
+    </logic-form>
+  </main>
+
+  <script>
+    const nav = document.createElement('div');
+    nav.className = 'demo-nav';
+
+    const demos = [];
+
+    document.querySelectorAll('logic-form').forEach((lf, i) => {
+      let demo = lf.closest('.demo');
+      lf.id = `demo${i + 1}`;
+      if (!demo) {
+        demo = document.createElement('div');
+        demo.className = 'demo';
+
+        lf.parentNode.insertBefore(demo, lf);
+        demo.appendChild(lf);
+      }
+
+      const config = lf.getConfig();
+
+      // Navigation button
+      const navButton = document.createElement('button');
+      navButton.type = 'button';
+      navButton.textContent = config.title;
+      navButton.className = 'demo-nav-button';
+
+      nav.appendChild(navButton);
+
+      // Demo header
+      const header = document.createElement('div');
+      header.className = 'demo-header';
+
+      const toggleButton = document.createElement('button');
+      toggleButton.type = 'button';
+      toggleButton.className = 'demo-toggle';
+      toggleButton.textContent = 'Show code';
+      const logButton = document.createElement('button');
+      logButton.type = 'button';
+      logButton.addEventListener('click', () => {
+        console.log(document.querySelector(`#${lf.id}`).getValue());
+      });
+      logButton.textContent = `console.log(document.querySelector(#${lf.id}).getValue())`;
+
+      header.append(toggleButton, logButton);
+
+      // Form container
+      let formContainer = lf.parentElement;
+
+      if (!formContainer.classList.contains('demo-form')) {
+        formContainer = document.createElement('div');
+        formContainer.className = 'demo-form';
+
+        lf.parentNode.insertBefore(formContainer, lf);
+        formContainer.appendChild(lf);
+      }
+
+      // Code block
+      const code = document.createElement('pre');
+      code.className = 'demo-code';
+
+      const attributes = [...lf.attributes]
+        .filter(attr => attr.name !== 'data-config')
+        .map(attr => `  ${attr.name}="${attr.value}"`)
+        .join('\n');
+
+      const formattedConfig = JSON.stringify(config, null, 2)
+        .split('\n')
+        .map((line, i) => i === 0 ? line : `  ${line}`)
+        .join('\n');
+
+      code.textContent =
+        `<logic-form
+${attributes}
+  data-config='${formattedConfig}'>
+</logic-form>`;
+
+      demo.insertBefore(header, demo.firstChild);
+      demo.appendChild(code);
+
+      toggleButton.addEventListener('click', () => {
+        demo.classList.toggle('show-code');
+
+        toggleButton.textContent =
+          demo.classList.contains('show-code')
+            ? 'Show demo'
+            : 'Show code';
+      });
+
+      demos.push({ demo, navButton });
+    });
+
+    // Navigation
+    document.body.insertBefore(nav, document.body.firstChild);
+
+    demos.forEach(({ demo, navButton }) => {
+      navButton.addEventListener('click', () => {
+        demos.forEach(({ demo, navButton }) => {
+          demo.style.display = 'none';
+          navButton.classList.remove('active');
+        });
+
+        demo.style.display = '';
+        navButton.classList.add('active');
+      });
+    });
+
+    // Show first demo initially
+    if (demos.length) {
+      demos[0].navButton.click();
+    }
+  </script>
 
 </html>
