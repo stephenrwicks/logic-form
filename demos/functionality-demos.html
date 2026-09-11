@@ -6,57 +6,79 @@
   <link rel="stylesheet" href="../logic-form.css">
   <script src="../logic-form.js"></script>
   <style>
-    form {
-      margin-bottom: 1rem;
-    }
-
-    .demo-header {
-      display: flex;
-      gap: 1rem;
-      margin-bottom: 2rem;
-    }
-
-    .demo-code {
-      display: none;
-    }
-
-    .demo.show-code .demo-form {
-      display: none;
-    }
-
-    .demo.show-code .demo-code {
-      display: block;
-      border: 1px solid gray;
-      width: fit-content;
-      padding: 2rem;
-    }
-
-    .demos .demo {
-      display: none;
-    }
-
-    .demo-nav {
-      display: grid;
-      gap: .4em;
-
-      button.active {
-        background: #333;
-        color: white;
-        font-weight: bold;
+    @layer demo {
+      form {
+        margin-bottom: 1rem;
       }
-      margin-bottom: 3rem;
-    }
 
-    body {
-      margin: 0px;
-      padding: 0px;
-      display: grid;
-      grid-template-columns: 1fr 5fr;
-      gap: 2rem;
-    }
+      .demo-header {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+      }
 
-    main {
-      max-height: 100vh;
+      .demo-code {
+        display: none;
+      }
+
+      .show-code .demo-form {
+        display: none;
+      }
+
+      .show-code .demo-code {
+        display: block;
+        border: 1px solid gray;
+        width: fit-content;
+        padding: 2rem;
+      }
+
+      main {
+        overflow: auto;
+        padding: 1rem;
+      }
+
+      button,
+      select {
+        background: none;
+        border: 0;
+        padding: 6px 12px;
+        text-align: left;
+        color: #337ab7;
+        cursor: pointer;
+        border-radius: 0px;
+        outline: 1px solid lightgray;
+
+        &:hover {
+          color: #23527c;
+          background: #f5f5f5;
+        }
+
+        &.active {
+          color: #23527c;
+          background: #e0e0e0;
+
+        }
+      }
+
+      nav {
+        display: grid;
+        max-height: 100%;
+        overflow: auto;
+
+        button {
+          outline: none;
+        }
+
+      }
+
+      body {
+        height: 100vh;
+        margin: 0px;
+        padding: 0px;
+        display: grid;
+        grid-template-columns: 1fr 5fr;
+        gap: 2rem;
+      }
     }
   </style>
 
@@ -99,7 +121,7 @@
   }'>
     </logic-form>
 
-    <logic-form data-theme="indigo" data-config='{
+    <logic-form data-config='{
   "title": "Do different things by comparing Field A and B",
   "fields": [
     {
@@ -149,7 +171,7 @@
 }'>
     </logic-form>
 
-    <logic-form data-theme="green" data-config='{
+    <logic-form data-config='{
     "title": "Field is disabled when select is set to option C and checkbox is checked",
     "fields": [
       {
@@ -182,7 +204,7 @@
   }'>
     </logic-form>
 
-    <logic-form data-theme="purple" data-config='{
+    <logic-form data-config='{
     "title": "Make a field required when an integer is greater than 10 and less than 20",
     "fields": [
       {
@@ -205,7 +227,7 @@
   }'>
     </logic-form>
 
-    <logic-form data-theme="teal" data-config='{
+    <logic-form data-config='{
     "title": "Disable a field unless checkboxgroup includes A and B, then field is required",
     "fields": [
       {
@@ -241,7 +263,7 @@
   }'>
     </logic-form>
 
-    <logic-form data-theme="slate" data-config='{
+    <logic-form data-config='{
     "title": "Change a field label based on a radio selection",
     "fields": [
       {
@@ -344,6 +366,38 @@
   ]
 }'>
     </logic-form>
+
+    <logic-form onsubmit="return false" data-config='{
+  "title": "Conditional validation errors",
+  "fields": [
+    {
+      "type": "select",
+      "name": "accountType",
+      "label": "Account Type",
+      "options": [
+        { "text": "Personal", "value": "personal" },
+        { "text": "Business", "value": "business" }
+      ]
+    },
+    {
+      "type": "textbox",
+      "name": "username",
+      "label": "Username",
+      "required": false,
+      "error": {
+        "if": {
+          "and": [
+            [{"field": "accountType"}, "==", "personal"],
+            [" ", "in", {"field": "username"}]
+          ]
+        },
+        "then": "Personal usernames cannot contain spaces.",
+        "else": ""
+      }
+    }
+  ]
+}'>
+    </logic-form>
     <logic-form return false" data-config='{
   "title": "Set the number of activities that can be selected based on the group size",
   "fields": [
@@ -405,7 +459,7 @@
 }'>
     </logic-form>
 
-    <logic-form data-theme="pink" data-config='{
+    <logic-form data-config='{
   "title": "Show different fields based on the number of items entered",
   "fields": [
     {
@@ -452,7 +506,7 @@
 }'>
     </logic-form>
 
-    <logic-form data-theme="gold" data-config='{
+    <logic-form data-config='{
   "title": "Update labels and placeholders by comparing a string value to an array value",
   "fields": [
     {
@@ -495,7 +549,7 @@
 }'>
     </logic-form>
 
-    <logic-form data-theme="purple" data-config='{
+    <logic-form data-config='{
   "title": "Show a field when the checkbox selections exactly match the list",
   "fields": [
     {
@@ -530,7 +584,7 @@
 }'>
     </logic-form>
 
-    <logic-form data-theme="orange" data-config='{
+    <logic-form data-config='{
   "title": "Do something when a string is in another string",
   "fields": [
     {
@@ -636,7 +690,7 @@
 }'>
     </logic-form>
 
-    <logic-form data-theme="red" data-config='{
+    <logic-form data-config='{
   "title": "Food Order",
   "fields": [
     {
@@ -1285,26 +1339,60 @@
     }
   ]
 }'>
-</logic-form>
+    </logic-form>
 
   </main>
 
+
   <script>
-    const nav = document.createElement('div');
+    const nav = document.createElement('nav');
     nav.className = 'demo-nav';
 
+    const demo = document.createElement('main');
+    demo.className = 'demo';
+
+    const header = document.createElement('div');
+    header.className = 'demo-header';
+
+    const toggleButton = document.createElement('button');
+    toggleButton.type = 'button';
+    toggleButton.className = 'demo-toggle';
+    toggleButton.textContent = 'Show code';
+
+    const logButton = document.createElement('button');
+    logButton.type = 'button';
+    logButton.textContent = 'Log value';
+
+    const select = document.createElement('select');
+    for (const theme of [
+      'default',
+      'purple',
+      'green',
+      'orange',
+      'teal',
+      'slate',
+      'gold',
+      'pink',
+      'indigo'
+    ]) {
+      select.add(new Option(theme, theme));
+    }
+
+    header.append(toggleButton, logButton, select);
+
+    const formContainer = document.createElement('div');
+    formContainer.className = 'demo-form';
+
+    const code = document.createElement('pre');
+    code.className = 'demo-code';
+
+    demo.append(header, formContainer, code);
+
     const demos = [];
+    let activeIndex = 0;
 
     document.querySelectorAll('logic-form').forEach((lf, i) => {
-      let demo = lf.closest('.demo');
       lf.id = `demo${i + 1}`;
-      if (!demo) {
-        demo = document.createElement('div');
-        demo.className = 'demo';
-
-        lf.parentNode.insertBefore(demo, lf);
-        demo.appendChild(lf);
-      }
 
       const config = lf.getConfig();
 
@@ -1314,39 +1402,20 @@
       navButton.textContent = config.title;
       navButton.className = 'demo-nav-button';
 
-      nav.appendChild(navButton);
+      nav.append(navButton);
 
-      // Demo header
-      const header = document.createElement('div');
-      header.className = 'demo-header';
+      // Move form into the single form container
+      formContainer.append(lf);
 
-      const toggleButton = document.createElement('button');
-      toggleButton.type = 'button';
-      toggleButton.className = 'demo-toggle';
-      toggleButton.textContent = 'Show code';
-      const logButton = document.createElement('button');
-      logButton.type = 'button';
-      logButton.addEventListener('click', () => {
-        console.log(document.querySelector(`#${lf.id}`).getValue());
+      demos.push({
+        lf,
+        navButton
       });
-      logButton.textContent = `console.log(document.querySelector(#${lf.id}).getValue())`;
+    });
 
-      header.append(toggleButton, logButton);
-
-      // Form container
-      let formContainer = lf.parentElement;
-
-      if (!formContainer.classList.contains('demo-form')) {
-        formContainer = document.createElement('div');
-        formContainer.className = 'demo-form';
-
-        lf.parentNode.insertBefore(formContainer, lf);
-        formContainer.appendChild(lf);
-      }
-
-      // Code block
-      const code = document.createElement('pre');
-      code.className = 'demo-code';
+    function updateCode() {
+      const { lf } = demos[activeIndex];
+      const config = lf.getConfig();
 
       const attributes = [...lf.attributes]
         .filter(attr => attr.name !== 'data-config')
@@ -1363,41 +1432,54 @@
 ${attributes}
   data-config='${formattedConfig}'>
 </logic-form>`;
-
-      demo.insertBefore(header, demo.firstChild);
-      demo.appendChild(code);
-
-      toggleButton.addEventListener('click', () => {
-        demo.classList.toggle('show-code');
-
-        toggleButton.textContent =
-          demo.classList.contains('show-code')
-            ? 'Show demo'
-            : 'Show code';
-      });
-
-      demos.push({ demo, navButton });
-    });
-
-    // Navigation
-    document.body.insertBefore(nav, document.body.firstChild);
-
-    demos.forEach(({ demo, navButton }) => {
-      navButton.addEventListener('click', () => {
-        demos.forEach(({ demo, navButton }) => {
-          demo.style.display = 'none';
-          navButton.classList.remove('active');
-        });
-
-        demo.style.display = '';
-        navButton.classList.add('active');
-      });
-    });
-
-    // Show first demo initially
-    if (demos.length) {
-      demos[0].navButton.click();
     }
+
+    function setActiveDemo(index) {
+      activeIndex = index;
+
+      demos.forEach(({ lf, navButton }, i) => {
+        lf.style.display = i === activeIndex ? '' : 'none';
+        navButton.classList.toggle('active', i === activeIndex);
+      });
+
+      const { lf } = demos[activeIndex];
+
+      // select.value = 'default';
+      // lf.dataset.theme = 'default';
+
+      demo.classList.remove('show-code');
+      toggleButton.textContent = 'Show code';
+
+      updateCode();
+    }
+
+    toggleButton.addEventListener('click', () => {
+      demo.classList.toggle('show-code');
+
+      toggleButton.textContent =
+        demo.classList.contains('show-code')
+          ? 'Show demo'
+          : 'Show code';
+    });
+
+    logButton.addEventListener('click', () => {
+      console.log(demos[activeIndex].lf.getValue());
+    });
+
+    select.addEventListener('change', () => {
+      demos.forEach(demo => demo.lf.dataset.theme = select.value);
+    });
+
+    demos.forEach(({ navButton }, i) => {
+      navButton.addEventListener('click', () => {
+        setActiveDemo(i);
+      });
+    });
+
+    document.body.replaceChildren(nav, demo);
+
+
+    setActiveDemo(0);
   </script>
 
 </html>

@@ -94,6 +94,7 @@ logic-form {
         margin: 0;
         padding: 0;
         accent-color: var(--secondary);
+        color: var(--black);
 
         &,
         &::before,
@@ -107,23 +108,25 @@ logic-form {
         color: var(--white);
     }
 
-    /* *:user-invalid {
-        border-color: var(--danger) !important;
-    } */
-
     >form {
 
         display: grid;
+        grid-template-columns: 1fr;
         height: fit-content;
-        grid-template-columns: repeat(auto-fit, minmax(var(--column-width), 1fr));
         width: clamp(40vw, 60em, 100%);
         row-gap: 1.5rem;
-        column-gap: 2rem;
         padding: 1rem;
-        outline: 1px solid var(--gray);
+        border: 1px solid var(--gray);
 
-        >div:has(button[type="submit"]) {
-            grid-column: 1/-1;
+        >div:first-of-type {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(var(--column-width), 1fr));
+            row-gap: 1.5rem;
+            column-gap: 2rem;
+
+        }
+
+        >div:last-of-type {
             margin-top: 1rem;
             justify-self: end;
             display: flex;
@@ -137,11 +140,9 @@ logic-form {
     }
 
     form>p {
-        grid-column: 1/-1;
         line-height: 1.6;
-        text-wrap: balance;
-        text-wrap: pretty;
-
+        font-weight: 600;
+        font-size: 1.1em;
     }
 
     label {
@@ -151,11 +152,11 @@ logic-form {
     }
 
     /* Required span */
-    label>span:nth-of-type(2),
+    /* label>span:nth-of-type(2),
     label>span>span:nth-of-type(2),
     legend>span:nth-of-type(2) {
         color: var(--danger);
-    }
+    } */
 
     label:has(input[type="checkbox"]),
     label:has(input[type="radio"]) {
@@ -186,8 +187,7 @@ logic-form {
         }
 
         /* Disabled fieldset instead of disabled inputs */
-        &:where(fieldset:disabled label:has(input[type="radio"])),
-        &:where(fieldset:disabled label:has(input[type="checkbox"])) {
+        &:where(:disabled) {
             cursor: default;
             background-color: revert;
 
@@ -216,6 +216,7 @@ logic-form {
     input[type="date"],
     textarea {
 
+        color: var(--black);
         display: block;
         width: 100%;
         height: 2.25rem;
@@ -229,7 +230,6 @@ logic-form {
             cursor: default;
             opacity: .7;
             filter: grayscale(.8);
-            /* background-color: var(--secondaryLightest); */
         }
 
         &:hover:not(:disabled, :focus, :focus-visible, :focus-within) {
@@ -238,7 +238,7 @@ logic-form {
 
         &:focus-visible,
         &:focus {
-            box-shadow: 0px 0px 0px 1px inset var(--secondary);
+            box-shadow: 0px 0px 0px 1px inset var(--secondary), 0px 0px 2px var(--gray);
             border-color: var(--secondary);
 
             &:not(button) {

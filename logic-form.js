@@ -12,6 +12,7 @@ class LogicForm extends HTMLElement {
     #valueGetterObject;
     #isInit = false;
     #titleEl = document.createElement('p');
+    #fieldWrapper = document.createElement('div');
     #submitButton = document.createElement('button');
     #clearButton = document.createElement('button');
     #resetButton = document.createElement('button');
@@ -126,6 +127,7 @@ class LogicForm extends HTMLElement {
         let eventToListenFor = 'change';
         const id = `_${f.type}_${crypto.randomUUID()}`;
         const div = document.createElement('div');
+        div.className = 'logic-form-field';
         div.dataset.fieldName = f.name;
         div.dataset.fieldType = f.type;
         const label = document.createElement('label');
@@ -134,6 +136,7 @@ class LogicForm extends HTMLElement {
         label.htmlFor = id;
         requiredSpan.textContent = ' *';
         requiredSpan.ariaHidden = 'true';
+        requiredSpan.style.color = 'var(--danger)';
         label.replaceChildren(labelSpan, requiredSpan);
         let input;
         let getValue;
@@ -267,12 +270,12 @@ class LogicForm extends HTMLElement {
             input.type = 'number';
             div.replaceChildren(label, input);
             getValue = () => {
-                let val = '';
-                if (this.#isNumeric(input.value))
-                    val = input.value;
-                if (f.type === 'integer')
-                    val = String(Math.floor(Number(val)));
-                return val;
+                const val = input.valueAsNumber;
+                if (!this.#isNumeric(val))
+                    return 0;
+                if (f.type === 'decimal')
+                    return val;
+                return Math.floor(val);
             };
             setValue = (val) => {
                 if (!this.#isNumeric(val)) {
@@ -439,6 +442,7 @@ class LogicForm extends HTMLElement {
             };
             setRequired = (bool) => {
                 minMaxValidation();
+                input.dataset.required = String(!!bool);
                 requiredSpan.style.display = !!bool ? '' : 'none';
             };
             if (hasDefaultValueRule) {
@@ -457,16 +461,32 @@ class LogicForm extends HTMLElement {
             if (hasMinRule) {
                 setMin = () => {
                     min = Number(this.#resolveRuleWithReturnValue(f.min));
+                    minMaxValidation();
+                    input.dataset.min = String(min);
                 };
             }
             else if (this.#isInteger(f.min)) {
+                min = f.min;
+                minMaxValidation();
+                input.dataset.min = String(min);
+            }
+            else {
+                input.dataset.min = '0';
             }
             if (hasMaxRule) {
                 setMax = () => {
                     max = Number(this.#resolveRuleWithReturnValue(f.max));
+                    minMaxValidation();
+                    input.dataset.max = String(max);
                 };
             }
             else if (this.#isInteger(f.max)) {
+                max = f.max;
+                minMaxValidation();
+                input.dataset.max = String(max);
+            }
+            else {
+                input.dataset.max = '0';
             }
             if (hasErrorRule) {
                 setError = () => {
@@ -496,8 +516,11 @@ class LogicForm extends HTMLElement {
             const radios = f.options.map(o => {
                 const radio = document.createElement('input');
                 const label = document.createElement('label');
+                const radioId = `_${crypto.randomUUID()}`;
                 label.replaceChildren(radio, o.text);
+                label.htmlFor = radioId;
                 radio.type = 'radio';
+                radio.id = radioId;
                 radio.name = f.name;
                 radio.value = o.value;
                 input.append(label);
@@ -515,6 +538,7 @@ class LogicForm extends HTMLElement {
                 for (const radio of radios) {
                     radio.required = !!bool;
                 }
+                input.dataset.required = String(!!bool);
                 requiredSpan.style.display = !!bool ? '' : 'none';
             };
             if (hasDefaultValueRule) {
@@ -621,6 +645,7 @@ class LogicForm extends HTMLElement {
                 }
             };
             setRequired = (bool) => {
+                input.dataset.required = String(!!bool);
             };
             setReadonly = (bool) => {
                 for (const item of listItems) {
@@ -657,6 +682,7 @@ class LogicForm extends HTMLElement {
             }
             else if (this.#isInteger(f.min)) {
                 min = Number(f.min);
+                input.dataset.min = String(min);
             }
             if (hasMaxRule) {
                 setMax = () => {
@@ -664,6 +690,7 @@ class LogicForm extends HTMLElement {
             }
             else if (this.#isInteger(f.max)) {
                 max = Number(f.max);
+                input.dataset.max = String(max);
             }
             if (hasErrorRule) {
                 setError = () => {
@@ -837,7 +864,7 @@ class LogicForm extends HTMLElement {
             const hasChangedVisibility = wasVisibleBefore !== isVisibleNow;
             if (isVisibleNow) {
                 if (hasChangedVisibility) {
-                    latestVisibleItem ? latestVisibleItem.after(f.el) : this.form.append(f.el);
+                    latestVisibleItem ? latestVisibleItem.after(f.el) : this.#fieldWrapper.append(f.el);
                 }
                 latestVisibleItem = f.el;
             }
@@ -903,13 +930,13 @@ class LogicForm extends HTMLElement {
             if (Array.isArray(leftValue) && Array.isArray(rightValue)) {
                 return leftValue.length === rightValue.length;
             }
-            if (Array.isArray(leftValue) && typeof rightValue === 'number') {
+            if (Array.isArray(leftValue) && this.#isNumeric(rightValue)) {
                 return leftValue.length === rightValue;
             }
-            if (typeof leftValue === 'number' && Array.isArray(rightValue)) {
+            if (this.#isNumeric(leftValue) && Array.isArray(rightValue)) {
                 return leftValue === rightValue.length;
             }
-            return leftValue === rightValue;
+            return leftValue == rightValue;
         }
         if (operator === '!=') {
             if (Array.isArray(leftValue) && Array.isArray(rightValue))
@@ -917,23 +944,23 @@ class LogicForm extends HTMLElement {
             if (Array.isArray(leftValue) && Array.isArray(rightValue)) {
                 return leftValue.length !== rightValue.length;
             }
-            if (Array.isArray(leftValue) && typeof rightValue === 'number') {
+            if (Array.isArray(leftValue) && this.#isNumeric(rightValue)) {
                 return leftValue.length !== rightValue;
             }
-            if (typeof leftValue === 'number' && Array.isArray(rightValue)) {
+            if (this.#isNumeric(leftValue) && Array.isArray(rightValue)) {
                 return leftValue !== rightValue.length;
             }
-            return leftValue !== rightValue;
+            return leftValue != rightValue;
         }
         if (operator === '>') {
             if (Array.isArray(leftValue) && Array.isArray(rightValue)) {
                 return leftValue.length > rightValue.length;
             }
-            if (Array.isArray(leftValue) && typeof rightValue === 'number') {
-                return leftValue.length > rightValue;
+            if (Array.isArray(leftValue) && this.#isNumeric(rightValue)) {
+                return leftValue.length > Number(rightValue);
             }
-            if (typeof leftValue === 'number' && Array.isArray(rightValue)) {
-                return leftValue > rightValue.length;
+            if (this.#isNumeric(leftValue) && Array.isArray(rightValue)) {
+                return Number(leftValue) > rightValue.length;
             }
             return leftValue > rightValue;
         }
@@ -941,10 +968,10 @@ class LogicForm extends HTMLElement {
             if (Array.isArray(leftValue) && Array.isArray(rightValue)) {
                 return leftValue.length < rightValue.length;
             }
-            if (Array.isArray(leftValue) && typeof rightValue === 'number') {
+            if (Array.isArray(leftValue) && this.#isNumeric(rightValue)) {
                 return leftValue.length < rightValue;
             }
-            if (typeof leftValue === 'number' && Array.isArray(rightValue)) {
+            if (this.#isNumeric(leftValue) && Array.isArray(rightValue)) {
                 return leftValue < rightValue.length;
             }
             return leftValue < rightValue;
@@ -953,10 +980,10 @@ class LogicForm extends HTMLElement {
             if (Array.isArray(leftValue) && Array.isArray(rightValue)) {
                 return leftValue.length >= rightValue.length;
             }
-            if (Array.isArray(leftValue) && typeof rightValue === 'number') {
+            if (Array.isArray(leftValue) && this.#isNumeric(rightValue)) {
                 return leftValue.length >= rightValue;
             }
-            if (typeof leftValue === 'number' && Array.isArray(rightValue)) {
+            if (this.#isNumeric(leftValue) && Array.isArray(rightValue)) {
                 return leftValue >= rightValue.length;
             }
             return leftValue >= rightValue;
@@ -965,19 +992,19 @@ class LogicForm extends HTMLElement {
             if (Array.isArray(leftValue) && Array.isArray(rightValue)) {
                 return leftValue.length <= rightValue.length;
             }
-            if (Array.isArray(leftValue) && typeof rightValue === 'number') {
+            if (Array.isArray(leftValue) && this.#isNumeric(rightValue)) {
                 return leftValue.length <= rightValue;
             }
-            if (typeof leftValue === 'number' && Array.isArray(rightValue)) {
+            if (this.#isNumeric(leftValue) && Array.isArray(rightValue)) {
                 return leftValue <= rightValue.length;
             }
             return leftValue <= rightValue;
         }
         if (operator === 'in') {
-            return (rightValue.includes(leftValue));
+            return rightValue.includes(leftValue);
         }
         if (operator === '!in') {
-            return !(rightValue.includes(leftValue));
+            return !rightValue.includes(leftValue);
         }
         return true;
     }
@@ -1012,6 +1039,9 @@ class LogicForm extends HTMLElement {
                 this.form.setAttribute(attr, val);
             }
         }
+        this.form.className = 'logic-form-form';
+        this.#fieldWrapper.className = 'logic-form-main';
+        this.#titleEl.className = 'logic-form-title';
         this.#submitButton.type = 'submit';
         this.#submitButton.textContent = 'Submit';
         this.#clearButton.type = 'button';
@@ -1020,7 +1050,9 @@ class LogicForm extends HTMLElement {
         this.#resetButton.type = 'button';
         this.#resetButton.textContent = 'Reset';
         this.#resetButton.addEventListener('click', () => this.reset());
+        this.#buttonRow.className = 'logic-form-button-row';
         this.#buttonRow.replaceChildren(this.#resetButton, this.#clearButton, this.#submitButton);
+        this.form.replaceChildren(this.#titleEl, this.#fieldWrapper, this.#buttonRow);
         this.replaceChildren(this.form);
         this.#isInit = true;
     }
@@ -1036,8 +1068,8 @@ class LogicForm extends HTMLElement {
         this.#titleEl.textContent = config.title?.trim() ?? '';
         this.#fields = {};
         this.#valueGetterObject = Object.create(null);
-        this.form.replaceChildren();
-        this.form.append(this.#titleEl);
+        this.form.onsubmit = (e) => e.preventDefault();
+        this.#fieldWrapper.replaceChildren();
         for (const f of config.fields ?? []) {
             const fieldInternal = this.#buildField(f);
             Object.defineProperty(this.#valueGetterObject, f.name, {
@@ -1049,9 +1081,8 @@ class LogicForm extends HTMLElement {
                 },
                 enumerable: true,
             });
-            this.form.append(fieldInternal.el);
+            this.#fieldWrapper.append(fieldInternal.el);
         }
-        this.form.append(this.#buttonRow);
         this.#update();
         this.#dispatchUpdateEvent('setConfig');
     }
