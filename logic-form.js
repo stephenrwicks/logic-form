@@ -346,6 +346,11 @@ class LogicForm extends HTMLElement {
             div.replaceChildren(label, input);
             getValue = () => validValues.has(input.value) ? input.value : '';
             setValue = (val) => {
+                if (!validValues.size)
+                    return;
+                if (val === '' && !validValues.has('')) {
+                    input.value = [...validValues.values()][0];
+                }
                 if (!validValues.has(val))
                     return;
                 input.value = val;
@@ -471,11 +476,13 @@ class LogicForm extends HTMLElement {
                 input.dataset.min = String(min);
             }
             else {
-                input.dataset.min = '0';
+                input.dataset.min = '';
             }
             if (hasMaxRule) {
                 setMax = () => {
+                    console.log(f.max);
                     max = Number(this.#resolveRuleWithReturnValue(f.max));
+                    console.log({ max });
                     minMaxValidation();
                     input.dataset.max = String(max);
                 };
@@ -486,7 +493,7 @@ class LogicForm extends HTMLElement {
                 input.dataset.max = String(max);
             }
             else {
-                input.dataset.max = '0';
+                input.dataset.max = '';
             }
             if (hasErrorRule) {
                 setError = () => {

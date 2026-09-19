@@ -400,6 +400,10 @@ class LogicForm extends HTMLElement {
             getValue = () => validValues.has((input as HTMLSelectElement).value) ? (input as HTMLSelectElement).value : '';
 
             setValue = (val: string) => {
+                if (!validValues.size) return;
+                if (val === '' && !validValues.has('')) {
+                    (input as HTMLSelectElement).value = [...validValues.values()][0];
+                }
                 if (!validValues.has(val)) return;
                 (input as HTMLSelectElement).value = val;
             }
@@ -530,11 +534,14 @@ class LogicForm extends HTMLElement {
                 input.dataset.min = String(min);
             }
             else {
-                input.dataset.min = '0';
+                input.dataset.min = '';
             }
             if (hasMaxRule) {
+
                 setMax = () => {
+                    console.log(f.max);
                     max = Number(this.#resolveRuleWithReturnValue(f.max as RuleWithReturnValue));
+                    console.log({max});
                     minMaxValidation();
                     input.dataset.max = String(max);
                 }
@@ -545,7 +552,7 @@ class LogicForm extends HTMLElement {
                 input.dataset.max = String(max);
             }
             else {
-                input.dataset.max = '0';
+                input.dataset.max = '';
             }
             if (hasErrorRule) {
                 setError = () => {
@@ -554,6 +561,9 @@ class LogicForm extends HTMLElement {
             }
         }
         else if (f.type === 'radiogroup') {
+
+            // Doesn't hide radio button on "reset"
+
             const validValues = new Set(f.options.map(o => o.value));
             input = document.createElement('fieldset');
             input.id = id;
@@ -1060,7 +1070,7 @@ class LogicForm extends HTMLElement {
      * Figures out what a property (required, visible, etc.) should be based on current form state.
      * Returns default if not defined. This is constantly run as the form updates
     */
-    #evaluateBooleanProperty(propertyVal: boolean | BooleanExpression | AndRule | OrRule | NotRule | undefined, defaultValue: boolean): boolean {
+    #evaluateBooleanProperty(propertyVal: boolean | BooleanRule | AndRule | OrRule | NotRule | undefined, defaultValue: boolean): boolean {
         if (typeof propertyVal === 'boolean') return propertyVal;
         //if (Array.isArray(propertyVal)) return propertyVal.every(rule => this.#evaluateBooleanRule2(rule));
         if (typeof propertyVal === 'object' && !!propertyVal) return this.#evaluateBooleanRule(propertyVal);
@@ -1072,7 +1082,7 @@ class LogicForm extends HTMLElement {
         * Also needs some type checking, maybe, or else you can do weird things like 'a' < 'aa' etc? This is probably ok
     *  Does check for arrays*/
 
-    #evaluateBooleanRule(rule: BooleanExpression | AndRule | OrRule | NotRule): boolean {
+    #evaluateBooleanRule(rule: BooleanRule | AndRule | OrRule | NotRule): boolean {
         const isArray = Array.isArray(rule);
         if (!isArray && 'and' in rule) {
             return rule.and.every((r) => this.#evaluateBooleanRule(r));
@@ -1351,9 +1361,9 @@ type FieldBase = {
     type: 'textbox' | 'textarea' | 'checkbox' | 'select' | 'numerictextbox' | 'integer' | 'decimal' | 'checkboxgroup' | 'radiogroup' | 'list' | 'date' | 'hidden';
     name: string;
     label: string | RuleWithReturnValue;
-    visible?: BooleanExpression | AndRule | OrRule | NotRule | boolean;
-    required?: BooleanExpression | AndRule | OrRule | NotRule | boolean;
-    disabled?: BooleanExpression | AndRule | OrRule | NotRule | boolean;
+    visible?: BooleanExpression;
+    required?: BooleanExpression;
+    disabled?: BooleanExpression;
     error?: RuleWithReturnValue;
 }
 
@@ -1363,7 +1373,7 @@ type Textbox = FieldBase & {
     placeholder?: string | RuleWithReturnValue;
     minLength?: number | RuleWithReturnValue;
     maxLength?: number | RuleWithReturnValue;
-    readonly?: BooleanExpression | AndRule | OrRule | NotRule | boolean;
+    readonly?: BooleanExpression;
 }
 
 type Textarea = FieldBase & {
@@ -1372,7 +1382,7 @@ type Textarea = FieldBase & {
     placeholder?: string | RuleWithReturnValue;
     minLength?: number;
     maxLength?: number;
-    readonly?: BooleanExpression | AndRule | OrRule | NotRule | boolean;
+    readonly?: BooleanExpression;
 }
 
 type Checkbox = FieldBase & {
@@ -1386,7 +1396,7 @@ type NumericTextbox = FieldBase & {
     placeholder?: string | RuleWithReturnValue;
     minLength?: number | RuleWithReturnValue;
     maxLength?: number | RuleWithReturnValue;
-    readonly?: BooleanExpression | AndRule | OrRule | NotRule | boolean;
+    readonly?: BooleanExpression;
 }
 
 type Integer = FieldBase & {
@@ -1395,7 +1405,7 @@ type Integer = FieldBase & {
     placeholder?: string | RuleWithReturnValue;
     min?: number | RuleWithReturnValue;
     max?: number | RuleWithReturnValue;
-    readonly?: BooleanExpression | AndRule | OrRule | NotRule | boolean;
+    readonly?: BooleanExpression;
 }
 
 type Decimal = FieldBase & {
@@ -1404,7 +1414,7 @@ type Decimal = FieldBase & {
     placeholder?: string | RuleWithReturnValue;
     min?: number | RuleWithReturnValue;
     max?: number | RuleWithReturnValue;
-    readonly?: BooleanExpression | AndRule | OrRule | NotRule | boolean;
+    readonly?: BooleanExpression;
 }
 
 type Select = FieldBase & {
@@ -1444,7 +1454,7 @@ type List = FieldBase & {
     defaultValue?: string[] | RuleWithReturnValue;
     min?: number | RuleWithReturnValue;
     max?: number | RuleWithReturnValue;
-    readonly?: BooleanExpression | AndRule | OrRule | NotRule | boolean;
+    readonly?: BooleanExpression;
 }
 
 type DateInput = FieldBase & {
@@ -1452,38 +1462,43 @@ type DateInput = FieldBase & {
     defaultValue?: string | RuleWithReturnValue;
     min?: string | RuleWithReturnValue;
     max?: string | RuleWithReturnValue;
-    readonly?: BooleanExpression | AndRule | OrRule | NotRule | boolean;
+    readonly?: BooleanExpression;
 }
 
 type HiddenInput = {
     type: 'hidden';
     name: string;
     defaultValue?: string | RuleWithReturnValue;
-    disabled?: BooleanExpression | AndRule | OrRule | NotRule | boolean;
+    disabled?: BooleanExpression;
 }
 
 type Operator = '==' | '!=' | '>' | '<' | '>=' | '<=' | 'in' | '!in';
 type Value = boolean | string | number | string[];
-type BooleanExpression = [FieldReference | Value, Operator, FieldReference | Value];
+type BooleanRule = [FieldReference | Value, Operator, FieldReference | Value];
 type FieldReference = { field: string };
-type AndRule = { and: BooleanExpression[] };
-type OrRule = { or: BooleanExpression[] };
-type NotRule = { not: BooleanExpression | AndRule | OrRule };
+type AndRule = { and: BooleanRule[] };
+type OrRule = { or: BooleanRule[] };
+type NotRule = { not: BooleanRule | AndRule | OrRule };
+type BooleanExpression = BooleanRule | AndRule | OrRule | NotRule | boolean;
 
-// Could easily change if conditions to be an array of {"field": "fieldA"}, "==", "something", return value,
-// with an else at the end
 
 type RuleWithReturnValue = {
-    if: BooleanExpression | AndRule | OrRule | NotRule,
+    if: BooleanRule | AndRule | OrRule | NotRule,
     then: Value,
     elseif?: {
-        if: BooleanExpression | AndRule | OrRule | NotRule,
+        if: BooleanRule | AndRule | OrRule | NotRule,
         then: Value
     }[],
     else: Value
 };
 
-type RuleWithReturnValue2 = [BooleanExpression | AndRule | OrRule | NotRule, Value];
+type RuleWithReturnValue3 = {
+    returns: {
+        if: BooleanRule | AndRule | OrRule | NotRule,
+        then: Value
+    }[],
+    else: Value
+};
 
 type Config = {
     title: string;

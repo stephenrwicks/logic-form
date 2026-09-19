@@ -120,6 +120,7 @@ logic-form {
 
         >div:first-of-type {
             display: grid;
+            /* grid-template-columns: repeat(auto-fit, minmax(var(--column-width), 1fr)); */
             grid-template-columns: repeat(auto-fit, minmax(var(--column-width), 1fr));
             row-gap: 1.5rem;
             column-gap: 2rem;
