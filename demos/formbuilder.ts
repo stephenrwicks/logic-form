@@ -35,9 +35,11 @@ const formBuilder = new LogicForm({
             minLength: 1,
             maxLength: 50,
             defaultValue: {
-                if: [{ field: 'type' }, '==', 'textbox'],
-                then: 'New Textbox',
-                elseif: [
+                when: [
+                    {
+                        if: [{ field: 'type' }, '==', 'textbox'],
+                        then: 'New Textbox'
+                    },
                     {
                         if: [{ field: 'type' }, '==', 'checkbox'],
                         then: 'New Checkbox',
@@ -112,13 +114,12 @@ const formBuilder = new LogicForm({
             minLength: 1,
             maxLength: 50,
             defaultValue: {
-                if: {
-                    or: [
-                        [{ field: 'type' }, '==', 'textbox'],
-                        [{ field: 'type' }, '==', 'integer'],
-                    ]
-                },
-                then: 'test',
+                when: [
+                    {
+                        if: [{ field: 'type' }, 'in', ['textarea', 'integer']],
+                        then: 'test',
+                    }
+                ],
                 else: 'test2'
             },
             visible: {
