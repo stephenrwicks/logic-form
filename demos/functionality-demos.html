@@ -98,7 +98,9 @@
           "type": "textbox",
           "name": "fieldB",
           "label": "Field B",
-          "visible": [{"field": "fieldA"}, "==", true]
+          "visible": [{"field": "fieldA"}, "==", true],
+          "minLength": 2,
+          "required": true
         }
       ]
     }'></logic-form>
@@ -264,39 +266,42 @@
     </logic-form>
 
     <logic-form data-config='{
-    "title": "Change a field label based on a radio selection",
-    "fields": [
-      {
-        "type": "radiogroup",
-        "name": "fieldA",
-        "label": "What are you interested in?",
-        "options": [
-          { "text": "Books", "value": "books" },
-          { "text": "Movies", "value": "movies" },
-          { "text": "Music", "value": "music" }
-        ]
-      },
-      {
-        "type": "textbox",
-        "name": "fieldB",
-        "label": {
-          "if": [{"field": "fieldA"}, "==", "books"],
-          "then": "Book Title",
-          "elseif": [
-            {
-              "if": [{"field": "fieldA"}, "==", "movies"],
-              "then": "Movie Title"
-            },
-            {
-              "if": [{"field": "fieldA"}, "==", "music"],
-              "then": "Album Title"
-            }
-          ],
-          "else": "Thing"
-        }
+  "title": "Change a field label based on a radio selection",
+  "fields": [
+    {
+      "type": "radiogroup",
+      "name": "fieldA",
+      "label": "What are you interested in?",
+      "options": [
+        { "text": "Books", "value": "books" },
+        { "text": "Movies", "value": "movies" },
+        { "text": "Music", "value": "music" }
+      ]
+    },
+    {
+      "type": "textbox",
+      "name": "fieldB",
+
+      "label": {
+        "when": [
+          {
+            "if": [{"field": "fieldA"}, "==", "books"],
+            "then": "Book Title"
+          },
+          {
+            "if": [{"field": "fieldA"}, "==", "movies"],
+            "then": "Movie Title"
+          },
+          {
+            "if": [{"field": "fieldA"}, "==", "music"],
+            "then": "Album Title"
+          }
+        ],
+        "else": "Thing"
       }
-    ]
-  }'>
+    }
+  ]
+}'>
     </logic-form>
 
     <logic-form onsubmit="return false" data-config='{
@@ -318,9 +323,11 @@
       "label": "Number of Guests",
       "required": true,
       "min": {
-        "if": [{"field": "room"}, "==", "small"],
-        "then": 1,
-        "elseif": [
+        "when": [
+          {
+            "if": [{"field": "room"}, "==", "small"],
+            "then": 1
+          },
           {
             "if": [{"field": "room"}, "==", "medium"],
             "then": 5
@@ -333,9 +340,11 @@
         "else": 1
       },
       "max": {
-        "if": [{"field": "room"}, "==", "small"],
-        "then": 5,
-        "elseif": [
+        "when": [
+          {
+            "if": [{"field": "room"}, "==", "small"],
+            "then": 5
+          },
           {
             "if": [{"field": "room"}, "==", "medium"],
             "then": 15
@@ -348,9 +357,11 @@
         "else": 5
       },
       "placeholder": {
-        "if": [{"field": "room"}, "==", "small"],
-        "then": "Select 1-5",
-        "elseif": [
+        "when": [
+          {
+            "if": [{"field": "room"}, "==", "small"],
+            "then": "Select 1-5"
+          },
           {
             "if": [{"field": "room"}, "==", "medium"],
             "then": "Select 5-15"
@@ -385,20 +396,24 @@
       "label": "Username",
       "required": false,
       "error": {
-        "if": {
-          "and": [
-            [{"field": "accountType"}, "==", "personal"],
-            [" ", "in", {"field": "username"}]
-          ]
-        },
-        "then": "Personal usernames cannot contain spaces.",
+        "when": [
+          {
+            "if": {
+              "and": [
+                [{"field": "accountType"}, "==", "personal"],
+                [" ", "in", {"field": "username"}]
+              ]
+            },
+            "then": "Personal usernames cannot contain spaces."
+          }
+        ],
         "else": ""
       }
     }
   ]
 }'>
     </logic-form>
-    <logic-form return false" data-config='{
+    <logic-form onsubmit="return false" data-config='{
   "title": "Set the number of activities that can be selected based on the group size",
   "fields": [
     {
@@ -425,9 +440,11 @@
         { "text": "Camping", "value": "camping" }
       ],
       "min": {
-        "if": [{"field": "groupSize"}, "==", "small"],
-        "then": 1,
-        "elseif": [
+        "when": [
+          {
+            "if": [{"field": "groupSize"}, "==", "small"],
+            "then": 1
+          },
           {
             "if": [{"field": "groupSize"}, "==", "medium"],
             "then": 2
@@ -440,9 +457,11 @@
         "else": 1
       },
       "max": {
-        "if": [{"field": "groupSize"}, "==", "small"],
-        "then": 2,
-        "elseif": [
+        "when": [
+          {
+            "if": [{"field": "groupSize"}, "==", "small"],
+            "then": 2
+          },
           {
             "if": [{"field": "groupSize"}, "==", "medium"],
             "then": 4
@@ -535,13 +554,21 @@
       "type": "textarea",
       "name": "fieldC",
       "label": {
-        "if": [{"field": "fieldA"}, "in", {"field": "fieldB"}],
-        "then": "You selected a matching option",
+        "when": [
+          {
+            "if": [{"field": "fieldA"}, "in", {"field": "fieldB"}],
+            "then": "You selected a matching option"
+          }
+        ],
         "else": "No matching option selected"
       },
       "placeholder": {
-        "if": [{"field": "fieldA"}, "in", {"field": "fieldB"}],
-        "then": "Tell us why this option is a favorite...",
+        "when": [
+          {
+            "if": [{"field": "fieldA"}, "in", {"field": "fieldB"}],
+            "then": "Tell us why this option is a favorite..."
+          }
+        ],
         "else": "Tell us why you chose a different option..."
       }
     }
@@ -706,7 +733,6 @@
       ],
       "required": true
     },
-
     {
       "type": "checkboxgroup",
       "name": "hotdogToppings",
@@ -720,7 +746,6 @@
       ],
       "visible": [{"field": "item"}, "==", "hotdog"]
     },
-
     {
       "type": "checkboxgroup",
       "name": "burgerToppings",
@@ -735,7 +760,6 @@
       ],
       "visible": [{"field": "item"}, "==", "hamburger"]
     },
-
     {
       "type": "select",
       "name": "burgerDoneness",
@@ -748,7 +772,6 @@
       ],
       "visible": [{"field": "item"}, "==", "hamburger"]
     },
-
     {
       "type": "select",
       "name": "pizzaSize",
@@ -760,7 +783,6 @@
       ],
       "visible": [{"field": "item"}, "==", "pizza"]
     },
-
     {
       "type": "checkboxgroup",
       "name": "pizzaToppings",
@@ -775,7 +797,6 @@
       ],
       "visible": [{"field": "item"}, "==", "pizza"]
     },
-
     {
       "type": "checkbox",
       "name": "glutenFree",
@@ -788,7 +809,6 @@
         ]
       }
     },
-
     {
       "type": "checkboxgroup",
       "name": "saladIngredients",
@@ -802,7 +822,6 @@
       ],
       "visible": [{"field": "item"}, "==", "salad"]
     },
-
     {
       "type": "select",
       "name": "dressing",
@@ -815,7 +834,6 @@
       ],
       "visible": [{"field": "item"}, "==", "salad"]
     },
-
     {
       "type": "checkboxgroup",
       "name": "extras",
@@ -827,14 +845,15 @@
         { "text": "Cookie", "value": "cookie" }
       ]
     },
-
     {
       "type": "textarea",
       "name": "specialInstructions",
       "label": {
-        "if": [{"field": "item"}, "==", "pizza"],
-        "then": "Pizza Instructions",
-        "elseif": [
+        "when": [
+          {
+            "if": [{"field": "item"}, "==", "pizza"],
+            "then": "Pizza Instructions"
+          },
           {
             "if": [{"field": "item"}, "==", "hamburger"],
             "then": "Burger Instructions"
@@ -847,9 +866,11 @@
         "else": "Special Instructions"
       },
       "placeholder": {
-        "if": [{"field": "item"}, "==", "pizza"],
-        "then": "Tell us about any special requests for your pizza...",
-        "elseif": [
+        "when": [
+          {
+            "if": [{"field": "item"}, "==", "pizza"],
+            "then": "Tell us about any special requests for your pizza..."
+          },
           {
             "if": [{"field": "item"}, "==", "hamburger"],
             "then": "Tell us about any special requests for your burger..."
@@ -865,7 +886,6 @@
   ]
 }'>
     </logic-form>
-
 
     <logic-form data-config='{
   "title": "Contact the Library",
@@ -896,7 +916,6 @@
       ],
       "required": true
     },
-
     {
       "type": "select",
       "name": "materialHelp",
@@ -909,7 +928,6 @@
       "visible": [{"field": "reason"}, "==", "materials"],
       "required": [{"field": "reason"}, "==", "materials"]
     },
-
     {
       "type": "numerictextbox",
       "name": "renewLibraryCard",
@@ -960,7 +978,6 @@
         ]
       }
     },
-
     {
       "type": "textbox",
       "name": "illLibraryCard",
@@ -998,7 +1015,6 @@
         ]
       }
     },
-
     {
       "type": "textarea",
       "name": "lostItemDetails",
@@ -1017,7 +1033,6 @@
         ]
       }
     },
-
     {
       "type": "select",
       "name": "technologyHelp",
@@ -1030,7 +1045,6 @@
       "visible": [{"field": "reason"}, "==", "technology"],
       "required": [{"field": "reason"}, "==", "technology"]
     },
-
     {
       "type": "select",
       "name": "ebookProblem",
@@ -1077,9 +1091,11 @@
       "name": "ebookDetails",
       "label": "eBook Details",
       "placeholder": {
-        "if": [{"field": "ebookProblem"}, "==", "download"],
-        "then": "Tell us what happens when you try to download the eBook...",
-        "elseif": [
+        "when": [
+          {
+            "if": [{"field": "ebookProblem"}, "==", "download"],
+            "then": "Tell us what happens when you try to download the eBook..."
+          },
           {
             "if": [{"field": "ebookProblem"}, "==", "open"],
             "then": "Tell us what happens when you try to open the eBook..."
@@ -1104,7 +1120,6 @@
         ]
       }
     },
-
     {
       "type": "select",
       "name": "catalogProblem",
@@ -1153,9 +1168,11 @@
       "name": "catalogDetails",
       "label": "Catalog Details",
       "placeholder": {
-        "if": [{"field": "catalogProblem"}, "==", "hold"],
-        "then": "Tell us which item you are trying to place a hold on...",
-        "elseif": [
+        "when": [
+          {
+            "if": [{"field": "catalogProblem"}, "==", "hold"],
+            "then": "Tell us which item you are trying to place a hold on..."
+          },
           {
             "if": [{"field": "catalogProblem"}, "==", "login"],
             "then": "Describe what happens when you try to sign in..."
@@ -1175,7 +1192,6 @@
         ]
       }
     },
-
     {
       "type": "select",
       "name": "printingProblem",
@@ -1218,7 +1234,6 @@
         ]
       }
     },
-
     {
       "type": "select",
       "name": "program",
@@ -1230,7 +1245,6 @@
       "visible": [{"field": "reason"}, "==", "programs"],
       "required": [{"field": "reason"}, "==", "programs"]
     },
-
     {
       "type": "checkboxgroup",
       "name": "bookInterests",
@@ -1249,7 +1263,6 @@
         ]
       }
     },
-
     {
       "type": "textbox",
       "name": "legoName",
@@ -1316,15 +1329,16 @@
         ]
       }
     },
-
     {
       "type": "textarea",
       "name": "message",
       "label": "Additional Information",
       "placeholder": {
-        "if": [{"field": "reason"}, "==", "materials"],
-        "then": "Tell us anything else about the books or materials...",
-        "elseif": [
+        "when": [
+          {
+            "if": [{"field": "reason"}, "==", "materials"],
+            "then": "Tell us anything else about the books or materials..."
+          },
           {
             "if": [{"field": "reason"}, "==", "technology"],
             "then": "Tell us anything else about your technology question..."
