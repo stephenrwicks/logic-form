@@ -1,15 +1,10 @@
 logic-form {
 
-    --column-width: 20rem;
-    --primary: rgb(10, 0, 102);
-    --secondary: rgb(26, 26, 82);
+
+    --primary: #3e297a;
+    --secondary: #00d0d0;
     --danger: red;
 
-    &[data-theme="purple"] {
-        --primary: #3e297a;
-        --secondary: #00d0d0;
-        --danger: red;
-    }
 
     &[data-theme="green"] {
         --primary: forestgreen;
@@ -78,6 +73,8 @@ logic-form {
     --border: 1px solid var(--primary);
     --borderRadius: 0;
 
+    --column-width: 20rem;
+
     font: normal .875rem Segoe UI,
     Roboto,
     Helvetica Neue,
@@ -113,18 +110,21 @@ logic-form {
         display: grid;
         grid-template-columns: 1fr;
         height: fit-content;
-        width: clamp(40vw, 60em, 100%);
+        min-width: 30rem;
+        width: fit-content;
+        max-width: 45rem;
         row-gap: 1.5rem;
         padding: 1rem;
         border: 1px solid var(--gray);
 
         >div:first-of-type {
             display: grid;
+            grid-template-columns: 1fr;
+
             /* grid-template-columns: repeat(auto-fit, minmax(var(--column-width), 1fr)); */
-            grid-template-columns: repeat(auto-fit, minmax(var(--column-width), 1fr));
             row-gap: 1.5rem;
             column-gap: 2rem;
-
+            padding-inline-end: 5%;
         }
 
         >div:last-of-type {
@@ -151,13 +151,6 @@ logic-form {
         width: fit-content;
         margin-bottom: .2em;
     }
-
-    /* Required span */
-    /* label>span:nth-of-type(2),
-    label>span>span:nth-of-type(2),
-    legend>span:nth-of-type(2) {
-        color: var(--danger);
-    } */
 
     label:has(input[type="checkbox"]),
     label:has(input[type="radio"]) {
