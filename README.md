@@ -50,9 +50,11 @@ Some rules require a return value, which looks like this:
 
 ```json
 "placeholder": {
-  "if": [{"field": "room"}, "==", "small"],
-  "then": "Select 1-5",
-  "elseif": [
+  "when": [
+    {
+      "if": [{"field": "room"}, "==", "small"],
+      "then": "Select 1-5"
+    },
     {
       "if": [{"field": "room"}, "==", "medium"],
       "then": "Select 5-15"
