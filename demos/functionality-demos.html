@@ -228,6 +228,164 @@
     ]
   }'>
     </logic-form>
+<logic-form data-config='{
+  "title": "Compare a number against the length of another field",
+  "fields": [
+    {
+      "type": "textbox",
+      "name": "fieldA",
+      "label": "Enter some text",
+      "defaultValue": "Hello"
+    },
+    {
+      "type": "integer",
+      "name": "fieldB",
+      "label": "Enter a number",
+      "required": [
+        {"field": "fieldB"}, "==", {"length": "fieldA"}
+      ]
+    }
+  ]
+}'>
+</logic-form>
+<logic-form data-config='{
+  "title": "Compare the lengths of two checkbox groups",
+  "fields": [
+    {
+      "type": "checkboxgroup",
+      "name": "fieldA",
+      "label": "Select options from Field A",
+      "options": [
+        { "text": "Option A", "value": "a" },
+        { "text": "Option B", "value": "b" },
+        { "text": "Option C", "value": "c" },
+        { "text": "Option D", "value": "d" }
+      ]
+    },
+    {
+      "type": "checkboxgroup",
+      "name": "fieldB",
+      "label": "Select options from Field B",
+      "options": [
+        { "text": "Option 1", "value": "1" },
+        { "text": "Option 2", "value": "2" },
+        { "text": "Option 3", "value": "3" },
+        { "text": "Option 4", "value": "4" }
+      ]
+    },
+    {
+      "type": "textbox",
+      "name": "fieldC",
+      "label": "Matching selection count",
+      "readonly": true,
+      "defaultValue": {
+        "when": [
+          {
+            "if": [
+              { "length": "fieldA" },
+              "==",
+              { "length": "fieldB" }
+            ],
+            "then": { "length": "fieldA" }
+          }
+        ],
+        "else": "No"
+      }
+    }
+  ]
+}'>
+</logic-form>
+
+<logic-form data-config='{
+  "title": "Compare the lengths of a checkbox group and a list",
+  "fields": [
+    {
+      "type": "checkboxgroup",
+      "name": "fieldA",
+      "label": "Select options from Field A",
+      "options": [
+        { "text": "Option A", "value": "a" },
+        { "text": "Option B", "value": "b" },
+        { "text": "Option C", "value": "c" },
+        { "text": "Option D", "value": "d" }
+      ]
+    },
+    {
+      "type": "list",
+      "name": "fieldB",
+      "label": "Select options from Field B",
+      "options": [
+        { "text": "Option 1", "value": "1" },
+        { "text": "Option 2", "value": "2" },
+        { "text": "Option 3", "value": "3" },
+        { "text": "Option 4", "value": "4" }
+      ]
+    },
+    {
+      "type": "textbox",
+      "name": "fieldC",
+      "label": "Matching selection count",
+      "readonly": true,
+      "defaultValue": {
+        "when": [
+          {
+            "if": [
+              { "length": "fieldA" },
+              "==",
+              { "length": "fieldB" }
+            ],
+            "then": { "length": "fieldA" }
+          }
+        ],
+        "else": "No"
+      }
+    }
+  ]
+}'>
+</logic-form>
+
+the dynamic min/max and label behavior:
+
+<logic-form data-config='{
+  "title": "Dynamically set checkboxgroup limits",
+  "fields": [
+    {
+      "type": "select",
+      "name": "fieldA",
+      "label": "How many items should be allowed?",
+      "options": [
+        { "text": "3 items", "value": "3" },
+        { "text": "5 items", "value": "5" },
+        { "text": "10 items", "value": "10" }
+      ],
+      "defaultValue": "5"
+    },
+    {
+      "type": "list",
+      "name": "fieldB",
+      "label": {
+        "when": [
+          {
+            "if": [{"field": "fieldA"}, "==", "3"],
+            "then": "Enter exactly 3 items"
+          },
+          {
+            "if": [{"field": "fieldA"}, "==", "5"],
+            "then": "Enter exactly 5 items"
+          },
+          {
+            "if": [{"field": "fieldA"}, "==", "10"],
+            "then": "Enter exactly 10 items"
+          }
+        ],
+        "else": "Enter items"
+      },
+      "min": {"field": "fieldA"},
+      "max": {"field": "fieldA"}
+    }
+  ]
+}'>
+</logic-form>
 
     <logic-form data-config='{
     "title": "Disable a field unless checkboxgroup includes A and B, then field is required",
@@ -242,7 +400,8 @@
           { "text": "Option C", "value": "c" },
           { "text": "Option D", "value": "d" },
           { "text": "Option E", "value": "e" }
-        ]
+        ],
+        "defaultValue": ["b", "c"]
       },
       {
         "type": "textbox",
@@ -485,7 +644,7 @@
       "type": "list",
       "name": "fieldA",
       "label": "Enter some items",
-      "min": 1,
+      "min": 2,
       "max": 5
     },
 

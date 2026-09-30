@@ -45,6 +45,14 @@ class LogicForm extends HTMLElement {
         return !!val && typeof val === 'object' && 'when' in val && Array.isArray(val.when) && 'else' in val;
     }
 
+    #isFieldReference(val: unknown): val is FieldReference {
+        return !!val && typeof val === 'object' && !Array.isArray(val) && 'field' in val;
+    }
+
+    #isFieldLengthReference(val: unknown): val is FieldLengthReference {
+        return !!val && typeof val === 'object' && !Array.isArray(val) && 'length' in val;
+    }
+
     #isFlatStringArrayEqual(array1: string[], array2: string[]) {
         // Compare string value arrays for checkbox groups, etc. We don't care about order so we sort it first
         // Remove duplicates with Set since declaring a value twice on a group should still work the same as once.
@@ -171,12 +179,6 @@ class LogicForm extends HTMLElement {
         let setMaxLength: (max: number) => void;
         let setError: (e: string) => void;
 
-
-        // const hasDefaultValueRule = 'defaultValue' in f && this.#isRuleWithReturnValue(f.defaultValue);
-        // const hasMinLengthRule = 'minLength' in f && this.#isRuleWithReturnValue(f.minLength);
-        // const hasMaxLengthRule = 'maxLength' in f && this.#isRuleWithReturnValue(f.maxLength);
-
-
         if (f.type === 'textbox' || f.type === 'textarea' || f.type === 'numerictextbox') {
             eventToListenFor = 'input'
             input = document.createElement(f.type === 'textarea' ? 'textarea' : 'input');
@@ -187,6 +189,9 @@ class LogicForm extends HTMLElement {
             getValue = () => (input as (HTMLInputElement | HTMLTextAreaElement)).value.trim();
             setValue = (val: string) => {
                 (input as (HTMLInputElement | HTMLTextAreaElement)).value = typeof val === 'string' ? val.trim() : '';
+            };
+            setDefaultString = (v: string | number) => {
+                (input as (HTMLInputElement | HTMLTextAreaElement)).defaultValue = String(v).trim();
             };
 
             setRequired = (bool) => {
@@ -200,9 +205,7 @@ class LogicForm extends HTMLElement {
             setPlaceholder = (p = '') => {
                 (input as HTMLInputElement | HTMLTextAreaElement).placeholder = p.trim();
             };
-            setDefaultString = (v: string | number) => {
-                (input as (HTMLInputElement | HTMLTextAreaElement)).defaultValue = String(v).trim();
-            };
+
             setMinLength = (min) => {
                 (input as HTMLInputElement | HTMLTextAreaElement).minLength = this.#isInteger(min) ? min : -1;
             };
@@ -264,7 +267,9 @@ class LogicForm extends HTMLElement {
                 }
                 (input as HTMLInputElement).valueAsNumber = f.type === 'integer' ? Math.floor(val) : val;
             };
-
+            setDefaultString = (v: string | number) => {
+                (input as (HTMLInputElement | HTMLTextAreaElement)).defaultValue = (this.#isNumeric(Number(v))) ? String(v).trim() : '';
+            };
 
             setRequired = (bool) => (input as HTMLInputElement).required = !!bool;
             setReadonly = (bool) => {
@@ -273,11 +278,6 @@ class LogicForm extends HTMLElement {
             setPlaceholder = (p = '') => {
                 (input as HTMLInputElement).placeholder = p.trim();
             }
-
-            setDefaultString = (v: string | number) => {
-                (input as (HTMLInputElement | HTMLTextAreaElement)).defaultValue = (this.#isNumeric(Number(v))) ? String(v).trim() : '';
-            };
-
             setMin = (min: number) => {
                 (input as HTMLInputElement).min = this.#isInteger(min) ? String(min) : '';
             }
@@ -335,12 +335,7 @@ class LogicForm extends HTMLElement {
                 }
                 if (!validValues.has(val)) return;
                 (input as HTMLSelectElement).value = val;
-            }
-
-            setRequired = (bool) => (input as HTMLSelectElement).required = !!bool;
-
-            setError = (e = '') => input.setCustomValidity(e);
-
+            };
             setDefaultString = (v: string) => {
                 if (!validValues.has(v)) {
                     [...(input as HTMLSelectElement).options][0].defaultSelected = true;
@@ -350,6 +345,9 @@ class LogicForm extends HTMLElement {
                     option.defaultSelected = option.value === v && validValues.has(v);
                 }
             };
+
+            setRequired = (bool) => (input as HTMLSelectElement).required = !!bool;
+            setError = (e = '') => input.setCustomValidity(e);
 
         }
         else if (f.type === 'checkboxgroup') {
@@ -420,6 +418,13 @@ class LogicForm extends HTMLElement {
                     checkbox.checked = set.has(checkbox.value);
                 }
             };
+            setDefaultArray = (v = []) => {
+                const defaultSelectedValues = new Set(v);
+                console.log('a');
+                for (const checkbox of checkboxes) {
+                    checkbox.defaultChecked = defaultSelectedValues.has(checkbox.value);
+                }
+            };
             setRequired = (bool: boolean) => {
                 input.dataset.min = !!bool ? '1' : '0';
                 input.dataset.required = String(!!bool);
@@ -439,14 +444,6 @@ class LogicForm extends HTMLElement {
             setError = (e = '') => {
                 if (checkboxes.length) checkboxes[0].setCustomValidity(e);
             };
-
-            setDefaultArray = (v = []) => {
-                const defaultSelectedValues = new Set(v);
-                for (const checkbox of checkboxes) {
-                    checkbox.defaultChecked = defaultSelectedValues.has(checkbox.value);
-                }
-            };
-
         }
         else if (f.type === 'radiogroup') {
 
@@ -495,6 +492,13 @@ class LogicForm extends HTMLElement {
                 }
                 updateClearButtonVisibility();
             }
+            setDefaultString = (v = '') => {
+                for (const option of radios) {
+                    option.defaultChecked = option.value === v && validValues.has(v);
+                }
+                updateClearButtonVisibility();
+            };
+
             setRequired = (bool) => {
                 for (const radio of radios) {
                     radio.required = !!bool;
@@ -502,13 +506,6 @@ class LogicForm extends HTMLElement {
                 input.dataset.required = String(!!bool);
                 requiredSpan.style.display = !!bool ? '' : 'none';
             };
-            setDefaultString = (v: string) => {
-                for (const option of radios) {
-                    option.defaultChecked = option.value === v && validValues.has(v);
-                }
-                updateClearButtonVisibility();
-            };
-
             setError = (e = '') => {
                 if (radios.length) radios[0].setCustomValidity(e);
             };
@@ -525,7 +522,7 @@ class LogicForm extends HTMLElement {
             div.replaceChildren(input);
 
             const listItems: Set<ReturnType<typeof buildItem>> = new Set();
-            const buildItem = (val = '') => {
+            const buildItem = (defaultValue = '') => {
                 const itemDiv = document.createElement('div');
                 itemDiv.style.display = 'flex';
                 const deleteButton = document.createElement('button');
@@ -538,7 +535,7 @@ class LogicForm extends HTMLElement {
                 itemInput.type = 'text';
                 // Normalize FormData by clearing the name of empty inputs so they are not submitted.
                 itemInput.addEventListener('input', () => itemInput.name = object.value ? f.name : '');
-                itemInput.value = val.trim();
+                itemInput.defaultValue = defaultValue.trim();
                 itemDiv.replaceChildren(itemInput, deleteButton);
                 const object = {
                     itemDiv,
@@ -585,7 +582,9 @@ class LogicForm extends HTMLElement {
             };
             setValue = (val: string[]) => {
                 val = Array.isArray(val) ? val.filter(str => typeof str === 'string' && !!str.trim()) : [];
-                for (const item of listItems) item.remove();
+                for (const item of listItems) {
+                    item.remove();
+                }
                 if (val.length > max) val.length = max;
                 for (const str of val) {
                     addItem(str);
@@ -600,6 +599,27 @@ class LogicForm extends HTMLElement {
 
                 }
             };
+            setDefaultArray = (val = []) => {
+                val = Array.isArray(val) ? val.filter(str => typeof str === 'string') : [];
+                //if (val.length > max) val.length = max;
+                for (const item of listItems) {
+                    item.remove();
+                }
+                for (const str of val) {
+                    addItem(str);
+                }
+                if (listItems.size < min) {
+                    // Add extra blanks if necessary to hit minimum
+                    const blanksToAdd = min - listItems.size;
+                    for (let i = 0; i < blanksToAdd; i++) {
+                        addItem('');
+                    }
+
+                }
+            };
+
+
+
             setRequired = (bool) => {
                 // Some custom validity telling you how many to fill in.
                 // Min 1 without required should require 0
@@ -610,7 +630,6 @@ class LogicForm extends HTMLElement {
                     item.itemInput.readOnly = !!bool;
                 }
             };
-
             input.addEventListener('change', () => {
                 const isAtMin = listItems.size <= min;
                 const isAtMax = listItems.size >= max;
@@ -621,40 +640,15 @@ class LogicForm extends HTMLElement {
                 addItemButton.disabled = isAtMax;
             });
 
-            setDefaultArray = (v = []) => {
-
-            };
-
-            // if (hasDefaultValueRule) {
-            //     setDefaultValue = () => {
-            //         const strArray = this.#resolveRuleWithReturnValue(f.defaultValue as RuleWithReturnValue) as string[];
-            //         if (!Array.isArray(strArray)) return;
-            //         [...listItems].forEach((item, i) => {
-            //             item.itemInput.defaultValue = ((strArray as string[])[i]) ?? '';
-            //         });
-            //     };
-            // }
-            // else if (Array.isArray(f.defaultValue)) {
-            //     [...listItems].forEach((item, i) => {
-            //         item.itemInput.defaultValue = ((f.defaultValue as string[])[i]) ?? '';
-            //     });
-            // }
-
             setMin = (min: number) => {
-
-
                 //min = Number(this.#resolveRuleWithReturnValue(f.min as RuleWithReturnValue));
                 //minMaxValidation();
                 input.dataset.min = String(min);
             }
-
-
             setMax = (max: number) => {
                 //minMaxValidation();
                 input.dataset.max = String(max);
             }
-
-
             setError = (e = '') => {
                 if (listItems.size) [...listItems.values()][0].itemInput.setCustomValidity(e);
             };
@@ -674,6 +668,9 @@ class LogicForm extends HTMLElement {
             setValue = (dateString: string) => {
                 (input as HTMLInputElement).value = dateString;
             };
+            setDefaultString = (v: string) => {
+                (input as HTMLInputElement).defaultValue = v;
+            };
             setRequired = (bool: boolean) => {
                 (input as HTMLInputElement).required = !!bool;
                 requiredSpan.style.display = !!bool ? '' : 'none';
@@ -681,21 +678,15 @@ class LogicForm extends HTMLElement {
             setReadonly = (bool: boolean) => {
                 (input as HTMLInputElement).readOnly = !!bool;
             };
-            setDefaultString = (v: string) => {
-                (input as HTMLInputElement).defaultValue = v;
-            };
             setMinDate = (min: Date) => {
 
             }
-
             setMaxDate = (max: Date) => {
 
             };
-
             setError = (e = '') => {
                 input.setCustomValidity(e);
             }
-
         }
 
         else {
@@ -835,8 +826,7 @@ class LogicForm extends HTMLElement {
                 }
                 if (setDefaultArray && 'defaultValue' in f) {
                     const oldDefaultArray = _defaultArray;
-                    //_defaultArray = cl.#evaluateArrayProperty(f.defaultValue as RuleWithReturnValue);
-                    //if (_defaultArray !== oldDefaultArray) setDefaultBool(_defaultBool);
+                    _defaultArray = cl.#evaluateArrayProperty(f.defaultValue as RuleWithReturnValue);
                     if (!cl.#isFlatStringArrayEqual(_defaultArray, oldDefaultArray)) setDefaultArray(_defaultArray);
                 }
 
@@ -936,20 +926,46 @@ class LogicForm extends HTMLElement {
         return true;
     }
 
+    #resolveFieldReference(fr: FieldReference) {
+        return this.#fields[fr.field].value;
+    }
+
+    #resolveFieldLengthReference(flr: FieldLengthReference) {
+        const value = this.#fields[flr.length].value;
+        if (Array.isArray(value) || typeof value === 'string') return value.length;
+        if (typeof value === 'number') return String(value).length;
+        if (value === true) return 1;
+        return 0;
+    }
 
     /**
         Parse if / else if / else from JSON and return the correct value based on the current form state.
      */
-    #resolveRuleWithReturnValue(rule: RuleWithReturnValue): Value {
+    #resolveRuleWithReturnValue(rule: RuleWithReturnValue): Value | FieldReference | FieldLengthReference {
         // Use find since we are returning the first in the array
-        return rule.when.find(condition => this.#evaluateBooleanProperty(condition.if, false))?.then ?? rule.else ?? '';
+        const result = rule.when.find(condition => this.#evaluateBooleanProperty(condition.if, false))?.then ?? rule.else ?? '';
+        if (this.#isFieldReference(result)) {
+            return this.#resolveFieldReference(result);
+        }
+        if (this.#isFieldLengthReference(result)) {
+            return this.#resolveFieldLengthReference(result);
+        }
+        return result;
     }
 
     #evaluateStringProperty(propertyVal: string | number | RuleWithReturnValue | undefined): string {
         if (propertyVal === null || typeof propertyVal === 'undefined') return '';
         if (typeof propertyVal === 'string') return propertyVal.trim();
         if (typeof propertyVal === 'number') return String(propertyVal).trim();
-        if (this.#isRuleWithReturnValue(propertyVal)) return String(this.#resolveRuleWithReturnValue(propertyVal)).trim();
+        if (this.#isFieldReference(propertyVal)) {
+            return String(this.#resolveFieldReference(propertyVal));
+        }
+        if (this.#isFieldLengthReference(propertyVal)) {
+            return String(this.#resolveFieldLengthReference(propertyVal));
+        }
+        if (this.#isRuleWithReturnValue(propertyVal)) {
+            return String(this.#resolveRuleWithReturnValue(propertyVal)).trim();
+        }
         return '';
     }
 
@@ -958,6 +974,12 @@ class LogicForm extends HTMLElement {
         let val = 0;
         if (typeof propertyVal === 'string') val = Number(propertyVal);
         else if (typeof propertyVal === 'number') val = propertyVal;
+        else if (this.#isFieldReference(propertyVal)) {
+            val = Number(this.#resolveFieldReference(propertyVal));
+        }
+        else if (this.#isFieldLengthReference(propertyVal)) {
+            val = this.#resolveFieldLengthReference(propertyVal);
+        }
         else if (this.#isRuleWithReturnValue(propertyVal)) val = Number(this.#resolveRuleWithReturnValue(propertyVal));
         return this.#isNumeric(val) ? val : 0;
     }
@@ -1004,19 +1026,17 @@ class LogicForm extends HTMLElement {
             return !this.#evaluateBooleanExpression(rule.not);
         }
         let [left, operator, right] = rule;
-        if (typeof left === 'object' && !Array.isArray(left) && 'field' in left) {
-            left = this.#fields[left.field].value;
+        if (this.#isFieldReference(left)) {
+            left = this.#resolveFieldReference(left);
         }
-        else if (typeof left === 'object' && !Array.isArray(left) && 'length' in left) {
-            left = this.#fields[left.length].value;
-            left = Array.isArray(left) || typeof left === 'string' ? left.length : 0;
+        else if (this.#isFieldLengthReference(left)) {
+            left = this.#resolveFieldLengthReference(left);
         }
-        if (typeof right === 'object' && !Array.isArray(right) && 'field' in right) {
-            right = this.#fields[right.field].value;
+        if (this.#isFieldReference(right)) {
+            right = this.#resolveFieldReference(right);
         }
-        else if (typeof right === 'object' && !Array.isArray(right) && 'length' in right) {
-            right = this.#fields[right.length].value;
-            right = Array.isArray(right) || typeof right === 'string' ? right.length : 0;
+        else if (this.#isFieldLengthReference(right)) {
+            right = this.#resolveFieldLengthReference(right);
         }
 
         if (operator === '==') {
@@ -1197,10 +1217,11 @@ class LogicForm extends HTMLElement {
     /** Reset to default values */
     reset() {
         // Maybe just use the config instead of relying on dom reset.
-        this.form.reset();
-        this.#update();
+        this.setConfig(this.#config);
+        // this.form.reset();
+        // this.#update();
         this.#dispatchUpdateEvent('reset');
-        return this.#valueGetterObject;
+        // return this.#valueGetterObject;
     }
     /** Save a snapshot of the current form state by name */
     saveSnapshot(name: string) {
@@ -1215,6 +1236,14 @@ class LogicForm extends HTMLElement {
         this.setValue(value);
         return structuredClone(value);
     }
+    /** Create a complete copy of the form and its snapshot object with its current state */
+    getClone() {
+        const form = new LogicForm(this.#config);
+        form.#snapshots = structuredClone(this.#snapshots);
+        form.setValue(this.getValue());
+        return form;
+    }
+
 
 }
 
@@ -1349,8 +1378,8 @@ type NotRule = { not: BooleanExpression };
 type BooleanExpression = BooleanRule | AndRule | OrRule | NotRule | boolean;
 
 type RuleWithReturnValue = {
-    when: { if: BooleanExpression, then: Value }[],
-    else: Value
+    when: { if: BooleanExpression, then: Value | FieldReference | FieldLengthReference }[],
+    else: Value | FieldReference | FieldLengthReference
 };
 
 type Config = {
