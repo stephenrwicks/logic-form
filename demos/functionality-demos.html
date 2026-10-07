@@ -654,7 +654,7 @@ the dynamic min/max and label behavior:
       "label": "Small List",
       "placeholder": "You have fewer than 3 items.",
       "visible": [
-        {"field": "fieldA"}, "<", 3
+        {"length": "fieldA"}, "<", 3
       ]
     },
 
@@ -664,7 +664,7 @@ the dynamic min/max and label behavior:
       "label": "Large List",
       "placeholder": "You have more than 3 items.",
       "visible": [
-        {"field": "fieldA"}, ">", 3
+        {"length": "fieldA"}, ">", 3
       ]
     },
 
@@ -677,7 +677,7 @@ the dynamic min/max and label behavior:
         { "text": "No", "value": "no" }
       ],
       "visible": [
-        {"field": "fieldA"}, "==", 3
+        {"length": "fieldA"}, "==", 3
       ]
     }
   ]
