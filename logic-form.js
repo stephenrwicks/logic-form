@@ -18,6 +18,7 @@ class LogicForm extends HTMLElement {
     #clearButton = document.createElement('button');
     #resetButton = document.createElement('button');
     #buttonRow = document.createElement('div');
+    debug = false;
     constructor(config) {
         super();
         this.#config = config;

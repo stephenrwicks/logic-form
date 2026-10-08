@@ -25,6 +25,8 @@ class LogicForm extends HTMLElement {
     #resetButton = document.createElement('button');
     #buttonRow = document.createElement('div');
 
+    debug = false;
+
     constructor(config: Config) {
         super();
         this.#config = config;
@@ -1192,10 +1194,7 @@ class LogicForm extends HTMLElement {
     reset() {
         // Maybe just use the config instead of relying on dom reset.
         this.setConfig(this.#config);
-        // this.form.reset();
-        // this.#update();
         this.#dispatchUpdateEvent('reset');
-        // return this.#valueGetterObject;
     }
     /** Save a snapshot of the current form state by name */
     saveSnapshot(name: string) {
@@ -1217,7 +1216,6 @@ class LogicForm extends HTMLElement {
         form.setValue(this.getValue());
         return form;
     }
-
 
 }
 
