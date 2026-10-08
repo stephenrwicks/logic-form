@@ -213,22 +213,23 @@ Rules are supported on the following properties:
 
 ### Properties
 
-`form`: The native HTML `<form>` element.
-`$`: Special two-way bound value object.
+* `form` — The native HTML `<form>` element.
+* `$` — A two-way-bound object for accessing and updating field values.
 
 ### Methods
 
-`getConfig(config)`: Get config.
-`setConfig(config)`: Rebuilds the form using a new configuration.
-`setValue()`: Pass in an object. Sets value of all form fields. Clears keys that aren't present
-`mergeValue()`: Pass in an object. Sets value of keys passed in.
-`getValue()`: Returns a fresh copy of all visible, enabled field values.
-`getJson()`: Returns the current values as JSON.
-`getFormData()`: Returns a native FormData object.
-`clear()`: Clears all form fields.
-`reset()`: Resets the form to its default values from the configuration.
-`saveSnapshot(name: string)`: Saves a snapshot of the current form state internally under the specified name.
-`loadSnapshot(name: string)`: Restores the form state from a previously saved snapshot.
+* `getConfig()` — Returns the current configuration.
+* `setConfig(config)` — Rebuilds the form using a new configuration.
+* `setValue(value)` — Sets the values of all form fields from an object. Fields whose keys are missing are cleared.
+* `mergeValue(value)` — Sets the values of the specified fields without clearing other fields.
+* `getValue()` — Returns a fresh copy of all visible, enabled field values.
+* `getJson()` — Returns the current values as JSON.
+* `getFormData()` — Returns a native `FormData` object.
+* `clear()` — Clears all form fields.
+* `reset()` — Resets the form to its default values from the configuration.
+* `saveSnapshot(name)` — Saves a snapshot of the current form state under the specified name.
+* `loadSnapshot(name)` — Restores the form state from a previously saved snapshot.
+
 
 
 ## Two-way-bound values with `$`
