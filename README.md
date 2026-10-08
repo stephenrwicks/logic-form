@@ -95,7 +95,7 @@ For example, show the company field only when `accountType` equals `"business"`:
 "visible": [{"field": "accountType"},"==","business"]
 ```
 
-You can also compare fields. Each comparison is an array with three items with an operator in the middle.
+Each comparison is an array with three items with an operator in the middle.
 ```json
 "disabled": [{"field": "fieldA"}, "<", {"field": "fieldB"}]
 ```
