@@ -79,7 +79,7 @@ Properties can use ordinary strings, numbers, and booleans.
 
 ### Field references
 
-A field reference resolves to the current value of another field. A field reference is an object shaped {field: "name"}. This placeholder for example would update in real time to the value of the field with the name/key "A."
+A field reference resolves to the current value of another field. A field reference is an object shaped `{field: "name"}`. This placeholder for example would update in real time to the value of the field with the name/key "A."
 
 ```json
 "placeholder": {"field": "A"}
@@ -213,22 +213,22 @@ Rules are supported on the following properties:
 
 ### Properties
 
-    form: The native HTML <form> element.
-    $: Special two-way bound value object.
+`form`: The native HTML `<form>` element.
+`$`: Special two-way bound value object.
 
 ### Methods
 
-    getConfig(config): Get config.
-    setConfig(config): Rebuilds the form using a new configuration.
-    setValue(): Pass in an object. Sets value of all form fields. Clears keys that aren't present
-    mergeValue(): Pass in an object. Sets value of keys passed in.
-    getValue(): Returns a fresh copy of all visible, enabled field values.
-    getJson(): Returns the current values as JSON.
-    getFormData(): Returns a native FormData object.
-    clear(): Clears all form fields.
-    reset(): Resets the form to its default values from the configuration.
-    saveSnapshot(name: string): Saves a snapshot of the current form state internally under the specified name.
-    loadSnapshot(name: string): Restores the form state from a previously saved snapshot.
+`getConfig(config)`: Get config.
+`setConfig(config)`: Rebuilds the form using a new configuration.
+`setValue()`: Pass in an object. Sets value of all form fields. Clears keys that aren't present
+`mergeValue()`: Pass in an object. Sets value of keys passed in.
+`getValue()`: Returns a fresh copy of all visible, enabled field values.
+`getJson()`: Returns the current values as JSON.
+`getFormData()`: Returns a native FormData object.
+`clear()`: Clears all form fields.
+`reset()`: Resets the form to its default values from the configuration.
+`saveSnapshot(name: string)`: Saves a snapshot of the current form state internally under the specified name.
+`loadSnapshot(name: string)`: Restores the form state from a previously saved snapshot.
 
 
 ## Two-way-bound values with `$`
